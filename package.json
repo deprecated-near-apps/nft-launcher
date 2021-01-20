@@ -1,0 +1,41 @@
+{
+  "name": "react-parcel-boilerplate",
+  "version": "1.0.0",
+  "description": "React Parcel Boilerplate",
+  "author": "Matt Lockyer",
+  "license": "ISC",
+  "dependencies": {
+    "near-api-js": "^0.36.2",
+    "parcel": "^2.0.0-beta.1",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1"
+  },
+  "devDependencies": {
+    "dotenv": "^8.2.0",
+    "eslint": "^7.14.0",
+    "jest": "^26.6.3",
+    "jest-environment-uint8array": "^1.0.0",
+    "rimraf": "^3.0.2"
+  },
+  "browserslist": [
+    "last 2 Chrome versions"
+  ],
+  "scripts": {
+    "prebuild": "yarn clean",
+    "prestart": "yarn clean && yarn dev:deploy",
+    "build": "parcel build src/index.html --no-source-maps",
+    "start": "parcel src/index.html --open",
+    "clean": "rimraf ./dist ./parcel-cache",
+    "fix": "eslint src/ --fix",
+    "deploy": "REACT_APP_ENV=\"prod\" yarn build && cp -a static/* dist && gh-pages -d dist",
+    
+    "build:contracts": "(cd contracts && ./build.sh)",
+    "dev:deploy": "yarn build:contracts && rm -rf neardev && (near dev-deploy || exit 0)",
+    "test:unit": "(cd contracts && cargo test -- --nocapture --color always)",
+    "test:deploy": "yarn dev:deploy && NODE_ENV=testnet jest main.test.js --useStderr",
+    "test": "NODE_ENV=testnet jest main.test.js --useStderr"
+  },
+  "jest": {
+    "testEnvironment": "jest-environment-uint8array"
+  }
+}
