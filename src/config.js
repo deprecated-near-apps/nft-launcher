@@ -18,8 +18,8 @@ let config = {
 if (devEnv) {
 	config = {
 		...config,
-        GAS: '200000000000000',
-        DEFAULT_NEW_ACCOUNT_AMOUNT: '5',
+		GAS: '200000000000000',
+		DEFAULT_NEW_ACCOUNT_AMOUNT: '5',
 		contractMethods: {
 			changeMethods: ['new', 'deposit', 'withdraw'],
 			viewMethods: ['get_balance'],
