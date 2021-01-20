@@ -6,12 +6,57 @@ There is a helper in `src/utils/state` that handles a lot of this. You can follo
 
 ## NEAR Config
 
+There is only one config.js file found in `src/config.js`, this is also used for running tests.
+
 Using `src/config.js` you can set up your different environments. Use `REACT_APP_ENV` to switch environments e.g. in `package.json` script `deploy`.
 
+## Running Tests
 
+You can run unit tests in the Rust contracts themselves, but it may be more useful to JS tests against testnet itself.
 
+Commands:
+- `test:deploy` - will deploy a new dev account (`/neardev`) and deploy a new contract to this account
+- `test` will simply run the tests against the contract already deployed
 
-## React 17, Parcel with useContext and useReducer
+If you've changed your contract or your dev account has run out of funds use `test:deploy`, if you're updating your JS tests only then use `test`.
+
+## Test Utils
+
+There are helpers in `test/test-utils.js` that take care of:
+1. creating a near connection and establishing a keystore for the dev account
+2. creating test accounts each time a test is run
+3. establishing a contract instance so you can call methods
+
+You can change the default funding amount for test accounts in `src/config.js`
+
+## Using the NEAR Config in your app
+
+In `src/state/near.js` you will see that `src/config.js` is loaded as a function. This is to satisfy the jest/node test runner.
+
+You can destructure any properies of the config easily in any module you import it in like this:
+
+```
+// example file app.js
+
+import getConfig from '../config';
+export const {
+	GAS,
+	networkId, nodeUrl, walletUrl, nameSuffix,
+	contractName,
+} = getConfig();
+```
+Note the export const in the destructuring?
+
+Now you can import these like so:
+```
+//example file Component.js
+import { GAS } from '../app.js'
+...
+await contract.withdraw({ amount: parseNearAmount('1') }, GAS)
+...
+```
+
+# React 17, Parcel with useContext and useReducer
 - Bundled with Parcel 2.0 (@next) && eslint
 - *Minimal all-in-one state management with async/await support*
 

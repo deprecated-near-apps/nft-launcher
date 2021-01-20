@@ -21,8 +21,6 @@
     "last 2 Chrome versions"
   ],
   "scripts": {
-    "prebuild": "yarn clean",
-    "prestart": "yarn clean && yarn dev:deploy",
     "build": "parcel build src/index.html --no-source-maps",
     "start": "parcel src/index.html --open",
     "clean": "rimraf ./dist ./parcel-cache",

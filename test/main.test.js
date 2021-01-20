@@ -1,13 +1,10 @@
-
 const nearAPI = require('near-api-js');
 const testUtils = require('./test-utils');
-const fs = require('fs');
-const BN = require('bn.js');
 const getConfig = require('../src/config')
 
 const { GAS } = getConfig()
 const { initConnection, initContract, getAccount, getContract } = testUtils
-const { Account, Contract, utils: { format: { parseNearAmount }} } = nearAPI
+const { Account, utils: { format: { parseNearAmount }} } = nearAPI
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
 let near, connection;
