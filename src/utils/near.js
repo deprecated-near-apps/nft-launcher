@@ -8,7 +8,8 @@ export const {
 } = getConfig();
 
 const {
-	KeyPair,
+    KeyPair,
+    Contract,
 	InMemorySigner,
 	transactions: {
 		addKey, deleteKey, fullAccessKey
@@ -21,6 +22,10 @@ const {
 	}
 } = nearAPI;
 
+export function getContract(account) {
+	return new Contract(account, contractName, { ...contractMethods });
+}
+
 export const getWallet = async () => {
 	const near = await nearAPI.connect({
 		networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
@@ -29,10 +34,9 @@ export const getWallet = async () => {
 	return { near, wallet };
 };
 
-export const getContract = async () => {
-	const contract = await new nearAPI.Contract(wallet.account(), contractName, { ...contractMethods });
-	return { contract, contractName, contractMethods };
-};
+/********************************
+Not used
+********************************/
 
 export const hasKey = async (near, accountId, publicKey) => {
 	const pubKeyStr = publicKey.toString();

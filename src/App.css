@@ -7,11 +7,6 @@ body {
     margin: 16px;
 }
 
-p {
-    font-size: 20px;
-    background: gray;
-    color: white;
-    padding: 16px;
-    margin: 0;
-    font-family: sans-serif;
+button {
+    margin-right: 16px;
 }

@@ -1,6 +1,8 @@
 import getConfig from '../config';
 import * as nearAPI from 'near-api-js';
 import { getWallet } from '../utils/near';
+import { initContract } from './trust';
+import { getAccount } from '../../test/test-utils';
 
 export const {
 	GAS,
@@ -33,10 +35,15 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 		signOut.call(wallet);
 		update('wallet.signedIn', false);
 	};
-	wallet.signedIn = wallet.isSignedIn();
+    wallet.signedIn = wallet.isSignedIn();
+    
+    let account
 	if (wallet.signedIn) {
-		wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
+        wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
+        account = await wallet.account()
 	}
 
-	update('', { near, wallet });
+    update('', { near, wallet, account });
+    
+    dispatch(initContract());
 };

@@ -3,13 +3,16 @@ import React, { useContext, useEffect } from 'react';
 import { appStore, onAppMount } from './state/app';
 
 import { Wallet } from './components/Wallet';
+import { Trust } from './components/Trust';
 
 import './App.css';
 
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
-	console.log(state);
-	const { wallet } = state;
+    
+    console.log(state);
+    
+	const { wallet, account, contract } = state;
 
 	const onMount = () => {
 		dispatch(onAppMount());
@@ -18,7 +21,8 @@ const App = () => {
     
 	return (
 		<div className="root">
-			<Wallet {...{ wallet }} />
+			<Wallet {...{ wallet, account }} />
+			<Trust {...{ contract, account, dispatch }} />
 		</div>
 	);
 };
