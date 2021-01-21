@@ -10,7 +10,7 @@ import './App.css';
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
     
-    console.log(state);
+	console.log(state);
     
 	const { wallet, account, contract } = state;
 

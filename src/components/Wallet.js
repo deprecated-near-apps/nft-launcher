@@ -5,10 +5,10 @@ export const Wallet = ({ wallet, account }) => {
 
 	if (wallet.signedIn) {
 		return <>
-            <p>Signed In: { account.accountId }</p>
-            <p>Balance: { wallet.balance }</p>
-            <button onClick={() => wallet.signOut()}>Sign Out</button>
-        </>;
+			<p>Signed In: { account.accountId }</p>
+			<p>Balance: { wallet.balance }</p>
+			<button onClick={() => wallet.signOut()}>Sign Out</button>
+		</>;
 	}
 
 	return <button onClick={() => wallet.signIn()}>Sign In</button>;

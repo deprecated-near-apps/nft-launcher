@@ -34,16 +34,18 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 	wallet.signOut = () => {
 		signOut.call(wallet);
 		update('wallet.signedIn', false);
-	};
-    wallet.signedIn = wallet.isSignedIn();
+    };
     
-    let account
+
+	wallet.signedIn = wallet.isSignedIn();
+    
+	let account;
 	if (wallet.signedIn) {
-        wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
-        account = await wallet.account()
+		wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
+		account = wallet.account();
 	}
 
-    update('', { near, wallet, account });
+	update('', { near, wallet, account });
     
-    dispatch(initContract());
+	dispatch(initContract());
 };

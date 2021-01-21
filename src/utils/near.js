@@ -8,8 +8,8 @@ export const {
 } = getConfig();
 
 const {
-    KeyPair,
-    Contract,
+	KeyPair,
+	Contract,
 	InMemorySigner,
 	transactions: {
 		addKey, deleteKey, fullAccessKey
