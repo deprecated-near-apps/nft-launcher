@@ -17,7 +17,7 @@ Internal Helpers
 async function createAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT) {
 	const contractAccount = new Account(near.connection, contractName);
 	const newKeyPair = KeyPair.fromRandom('ed25519');
-	const newPublicKey = await keyStore.setKey(networkId, accountId, newKeyPair);
+	await keyStore.setKey(networkId, accountId, newKeyPair);
 	await contractAccount.createAccount(accountId, newKeyPair.publicKey, new BN(parseNearAmount(fundingAmount)));
 	const newAccount = new nearAPI.Account(near.connection, accountId);
 	return newAccount;

@@ -25,7 +25,8 @@ const App = () => {
 			<Wallet {...{ wallet, account }} />
 			<Trust {...{ contract, account, dispatch }} />
 
-            <button onClick={() => dispatch(signFetch('http://localhost:3000/has-access-key'))}>Test Signed Message</button>
+			<button onClick={() => dispatch(signFetch('http://localhost:3000/has-access-key'))}>Test Signed Message</button>
+			<button onClick={() => dispatch(signFetch('http://localhost:3000/get-key'))}>Test Add Key</button>
 		</div>
 	);
 };

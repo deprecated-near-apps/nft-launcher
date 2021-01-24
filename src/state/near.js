@@ -27,7 +27,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 	wallet.signOut = () => {
 		signOut.call(wallet);
 		update('wallet.signedIn', false);
-    };
+	};
 
 	wallet.signedIn = wallet.isSignedIn();
     
@@ -43,7 +43,7 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 };
 
 export const signFetch = (url, data = {}) => async ({ getState }) => {
-    const { account } = await getState();
-    const result = await postSignedJson({ account, contractName, url, data })
-    console.log(result)
-}
+	const { account } = await getState();
+	const result = await postSignedJson({ account, contractName, url, data });
+	console.log(result);
+};
