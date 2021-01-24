@@ -2,12 +2,14 @@ const nearAPI = require('near-api-js');
 const testUtils = require('./test-utils');
 const getConfig = require('../src/config');
 
-const { GAS } = getConfig();
+const { GAS, contractName } = getConfig();
 const { initConnection, initContract, getAccount, getContract } = testUtils;
 const { Account, utils: { format: { parseNearAmount }} } = nearAPI;
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
 let near, connection;
+
+console.log(contractName);
 
 beforeAll(async () => {
 	near = await initConnection();
@@ -21,8 +23,7 @@ describe('deploy contract', () => {
 	beforeAll(async () => {
 		alice = await getAccount();
 		// bob = await getAccount();
-		const contract = await initContract(alice.accountId);
-		contractName = contract.accountId;
+		await initContract(alice.accountId);
 	});
 
 	test('contract hash', async () => {

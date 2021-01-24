@@ -1,8 +1,7 @@
 import getConfig from '../config';
 import * as nearAPI from 'near-api-js';
-import { getWallet } from '../utils/near';
+import { getWallet, postSignedJson } from '../utils/near-utils';
 import { initContract } from './trust';
-import { getAccount } from '../../test/test-utils';
 
 export const {
 	GAS,
@@ -10,16 +9,10 @@ export const {
 	contractName,
 } = getConfig();
 
-const {
-	KeyPair,
-	InMemorySigner,
-	transactions: {
-		addKey, deleteKey, fullAccessKey
-	},
+export const {
 	utils: {
-		PublicKey,
 		format: {
-			parseNearAmount, formatNearAmount
+			formatNearAmount, parseNearAmount
 		}
 	}
 } = nearAPI;
@@ -35,7 +28,6 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
 		signOut.call(wallet);
 		update('wallet.signedIn', false);
     };
-    
 
 	wallet.signedIn = wallet.isSignedIn();
     
@@ -49,3 +41,9 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     
 	dispatch(initContract());
 };
+
+export const signFetch = (url, data = {}) => async ({ getState }) => {
+    const { account } = await getState();
+    const result = await postSignedJson({ account, contractName, url, data })
+    console.log(result)
+}

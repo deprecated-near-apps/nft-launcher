@@ -1,6 +1,7 @@
 import React, { useContext, useEffect } from 'react';
 
 import { appStore, onAppMount } from './state/app';
+import { signFetch } from './state/near';
 
 import { Wallet } from './components/Wallet';
 import { Trust } from './components/Trust';
@@ -23,6 +24,8 @@ const App = () => {
 		<div className="root">
 			<Wallet {...{ wallet, account }} />
 			<Trust {...{ contract, account, dispatch }} />
+
+            <button onClick={() => dispatch(signFetch('http://localhost:3000/has-access-key'))}>Test Signed Message</button>
 		</div>
 	);
 };
