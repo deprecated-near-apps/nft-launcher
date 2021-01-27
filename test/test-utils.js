@@ -1,54 +1,51 @@
-const fs = require('fs');
 const BN = require('bn.js');
-const getConfig = require('../src/config');
+const fetch = require('node-fetch');
 const nearAPI = require('near-api-js');
 const { KeyPair, Account, Contract, utils: { format: { parseNearAmount } } } = nearAPI;
-
-const devEnv = getConfig();
+const { near, connection, keyStore, contract, contractAccount } = require('./near-utils')
+const getConfig = require('../src/config');
 const {
-	networkId, contractName, contractMethods, DEFAULT_NEW_ACCOUNT_AMOUNT
-} = devEnv;
-
-let near, contract, contractAccount, keyStore;
+    networkId, contractName, contractMethods, DEFAULT_NEW_ACCOUNT_AMOUNT
+} = getConfig();
 
 /********************************
 Internal Helpers
 ********************************/
 async function createAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT) {
-	const contractAccount = new Account(near.connection, contractName);
+	const contractAccount = new Account(connection, contractName);
 	const newKeyPair = KeyPair.fromRandom('ed25519');
-	await keyStore.setKey(networkId, accountId, newKeyPair);
 	await contractAccount.createAccount(accountId, newKeyPair.publicKey, new BN(parseNearAmount(fundingAmount)));
-	const newAccount = new nearAPI.Account(near.connection, accountId);
-	return newAccount;
+    keyStore.setKey(networkId, accountId, newKeyPair);
+	return new nearAPI.Account(connection, accountId);
+}
+
+const getSignature = async (account) => {
+	const { accountId } = account;
+	const block = await account.connection.provider.block({ finality: 'final' });
+	const blockNumber = block.header.height.toString();
+	const signer = account.inMemorySigner || account.connection.signer;
+	const signed = await signer.signMessage(Buffer.from(blockNumber), accountId, networkId);
+	const blockNumberSignature = Buffer.from(signed.signature).toString('base64');
+	return { blockNumber, blockNumberSignature };
+};
+
+function generateUniqueString(prefix) {
+	return `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
 }
 
 /********************************
 Exports
 ********************************/
-async function initConnection() {
-	keyStore = new nearAPI.keyStores.InMemoryKeyStore();
-	const config = Object.assign(devEnv, {
-		deps: { keyStore },
-	});
-	const credentials = JSON.parse(fs.readFileSync(process.env.HOME + '/.near-credentials/default/' + contractName + '.json'));
-	await keyStore.setKey(networkId, contractName, KeyPair.fromString(credentials.private_key));
-	near = await nearAPI.connect(config);
-	return near;
-}
 
-async function initContract(owner_id) {
-	if (contract) return { contract, contractName };
-	contractAccount = await getAccount(contractName);
-	contract = new Contract(contractAccount, contractName, contractMethods);
+async function initContract() {
 	try {
-		await contract.new({ owner_id });
+		await contract.new({ owner_id: contractName });
 	} catch (e) {
 		if (!/Already initialized/.test(e.toString())) {
 			throw e;
 		}
 	}
-	return contract;
+	return { contract, contractName };
 }
 
 async function getContract(account) {
@@ -60,7 +57,7 @@ async function getContract(account) {
 
 async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT) {
 	accountId = accountId || generateUniqueString('test');
-	const account = new nearAPI.Account(near.connection, accountId);
+	const account = new nearAPI.Account(connection, accountId);
 	try {
 		await account.state();
 		return account;
@@ -72,8 +69,26 @@ async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT)
 	return await createAccount(accountId, fundingAmount);
 };
 
-function generateUniqueString(prefix) {
-	return `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
-}
+const postSignedJson = async ({ account, contractName, url, data = {} }) => {
+	return await fetch(url, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({
+			...data,
+			accountId: account.accountId,
+			contractName,
+			...(await getSignature(account))
+		})
+	}).then((res) => res.json());
+};
 
-module.exports = { initConnection, initContract, getAccount, getContract };
+module.exports = { 
+    near,
+    connection,
+    keyStore,
+    getContract,
+    contract,
+    contractName,
+    contractAccount,
+    initContract, getAccount, postSignedJson
+};

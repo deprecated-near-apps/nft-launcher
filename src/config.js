@@ -1,6 +1,6 @@
-const contractName = 'dev-1611508105167-2797525';
+const contractName = 'dev-1611676909628-9977742';
 
-module.exports = function getConfig() {
+module.exports = function getConfig(isServer = false) {
 	let config = {
 		networkId: 'default',
 		nodeUrl: 'https://rpc.testnet.near.org',
@@ -9,7 +9,7 @@ module.exports = function getConfig() {
 		contractName,
 	};
     
-	if (process.env.REACT_APP_ENV === 'dev') {
+	if (!process.env.DEV_DEPLOY && (isServer || process.env.REACT_APP_ENV === 'dev')) {
 		config = {
 			...config,
 			GAS: '200000000000000',

@@ -15,6 +15,7 @@
         "eslint": "^7.14.0",
         "jest": "^26.6.3",
         "jest-environment-uint8array": "^1.0.0",
+        "node-fetch": "^2.6.1",
         "rimraf": "^3.0.2"
     },
     "browserslist": [
@@ -30,10 +31,11 @@
         "fix": "eslint src/ test/ server/ --fix",
         "build:contracts": "(cd contracts && ./build.sh)",
         "patch:config": "node ./utils/patch-config.js",
-        "dev:deploy": "yarn build:contracts && rm -rf neardev && (near dev-deploy || exit 0) && yarn patch:config",
+        "dev:deploy": "yarn build:contracts && rm -rf neardev && (DEV_DEPLOY=true near dev-deploy || exit 0) && yarn patch:config",
         "test:unit": "(cd contracts && cargo test -- --nocapture --color always)",
         "test:deploy": "yarn dev:deploy && yarn test",
-        "test": "REACT_APP_ENV=dev jest main.test.js --useStderr",
+        "test": "REACT_APP_ENV=dev jest app.test.js --useStderr",
+        "test:server": "REACT_APP_ENV=dev jest server.test.js --useStderr",
         "deploy": "REACT_APP_ENV=prod yarn build && cp -a static/* dist && gh-pages -d dist"
     },
     "jest": {
