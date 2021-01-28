@@ -1,9 +1,9 @@
 const nearAPI = require('near-api-js');
-const nearUtils = require('./test-utils');
+const testUtils = require('./test-utils');
 const getConfig = require('../src/config');
 
 const { KeyPair, utils: { format: { parseNearAmount }} } = nearAPI;
-const { keyStore, initContract, getAccount, contractAccount, postSignedJson } = nearUtils;
+const { keyStore, initContract, getAccount, contractAccount, postSignedJson } = testUtils;
 const { contractName, networkId } = getConfig();
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
@@ -50,6 +50,7 @@ describe('deploy contract ' + contractName, () => {
         // use the access key from the previous test to sign txs on behalf of the contract account now
         keyStore.setKey(networkId, contractName, accessKey)
         const result = await postSignedJson({ account: contractAccount, contractName, url: 'http://localhost:3000/has-access-key/' })
+        console.log(result)
         expect(result.success).toEqual(true);
 	});
 

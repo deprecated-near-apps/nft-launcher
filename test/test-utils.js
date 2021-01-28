@@ -69,6 +69,11 @@ async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT)
 	return await createAccount(accountId, fundingAmount);
 };
 
+const createAccessKeyAccount = (key) => {
+    connection.signer.keyStore.setKey(networkId, contractName, key)
+    return new Account(connection, contractName)
+}
+
 const postSignedJson = async ({ account, contractName, url, data = {} }) => {
 	return await fetch(url, {
 		method: 'POST',
@@ -79,7 +84,10 @@ const postSignedJson = async ({ account, contractName, url, data = {} }) => {
 			contractName,
 			...(await getSignature(account))
 		})
-	}).then((res) => res.json());
+	}).then((res) => {
+        console.log(res)
+        return res.json()
+    });
 };
 
 module.exports = { 
@@ -89,6 +97,8 @@ module.exports = {
     getContract,
     contract,
     contractName,
+    contractMethods,
     contractAccount,
+    createAccessKeyAccount,
     initContract, getAccount, postSignedJson
 };

@@ -31,7 +31,7 @@
         "fix": "eslint src/ test/ server/ --fix",
         "build:contracts": "(cd contracts && ./build.sh)",
         "patch:config": "node ./utils/patch-config.js",
-        "dev:deploy": "yarn build:contracts && rm -rf neardev && (DEV_DEPLOY=true near dev-deploy || exit 0) && yarn patch:config",
+        "dev:deploy": "yarn build:contracts && rm -rf neardev && (DEV_DEPLOY=true near dev-deploy || exit 0) && yarn patch:config && DEV_DEPLOY=false",
         "test:unit": "(cd contracts && cargo test -- --nocapture --color always)",
         "test:deploy": "yarn dev:deploy && yarn test",
         "test": "REACT_APP_ENV=dev jest app.test.js --useStderr",

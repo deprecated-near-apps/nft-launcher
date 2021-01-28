@@ -23,10 +23,28 @@ app.post('/has-access-key', hasAccessKey, (req, res) => {
 	res.json({ success: true });
 });
 
-app.post('/add-key', hasAccessKey, async (req, res) => {
+// WARNING NO RESTRICTION ON THIS ENDPOINT
+app.post('/add-key', async (req, res) => {
     const { publicKey } = req.body;
-    const result = await contractAccount.addAccessKey(publicKey);
-	res.json({ success: true, result });
+    try {
+        const result = await contractAccount.addAccessKey(publicKey);
+        res.json({ success: true, result });
+    } catch(e) {
+        return res.status(403).send({ error: `key is already added`});
+    }
+});
+
+// WARNING NO RESTRICTION ON THIS ENDPOINT
+app.get('/delete-access-keys', async (req, res) => {
+    const accessKeys = (await contractAccount.getAccessKeys()).filter(({ access_key: { permission }}) => permission && permission.FunctionCall && permission.FunctionCall.receiver_id === contractName);
+    try {
+        const result = await Promise.all(accessKeys.map(async ({ public_key }) => await contractAccount.deleteKey(public_key)))
+        console.log(result)
+        res.json({ success: true, result });
+    } catch(e) {
+        console.log(e)
+        return res.status(403).send({ error: e.message});
+    }
 });
 
 app.listen(port, () => {

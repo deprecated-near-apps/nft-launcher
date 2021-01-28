@@ -8,6 +8,7 @@ export const {
 } = getConfig();
 
 const {
+    Account,
 	Contract,
 	InMemorySigner,
 } = nearAPI;
@@ -24,7 +25,7 @@ export const getWallet = async () => {
 	return { near, wallet };
 };
 
-export const getSignature = async (account) => {
+export const getSignature = async (account, key) => {
 	const { accountId } = account;
 	const block = await account.connection.provider.block({ finality: 'final' });
 	const blockNumber = block.header.height.toString();
@@ -35,7 +36,7 @@ export const getSignature = async (account) => {
 };
 
 export const postSignedJson = async ({ account, contractName, url, data = {} }) => {
-	const result = await fetch(url, {
+	return await fetch(url, {
 		method: 'POST',
 		headers: new Headers({ 'content-type': 'application/json' }),
 		body: JSON.stringify({
@@ -45,8 +46,20 @@ export const postSignedJson = async ({ account, contractName, url, data = {} }) 
 			...(await getSignature(account))
 		})
 	}).then((res) => res.json());
-	console.log(result);
 };
+
+export const postJson = async ({ url, data = {} }) => {
+	return await fetch(url, {
+		method: 'POST',
+		headers: new Headers({ 'content-type': 'application/json' }),
+		body: JSON.stringify({ ...data })
+	}).then((res) => res.json());
+};
+
+export const createAccessKeyAccount = (near, key) => {
+    near.connection.signer.keyStore.setKey(networkId, contractName, key)
+    return new Account(near.connection, contractName)
+}
 
 /********************************
 Not used

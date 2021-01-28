@@ -5,7 +5,7 @@ import React, {useState} from 'react';
 import { GAS, parseNearAmount } from '../state/near';
 import { getBalances, setDepositAction } from '../state/trust';
 
-export const Trust = ({ contract, account, dispatch }) => {
+export const Contract = ({ contract, account, dispatch }) => {
 	if (!contract || !account) return null;
 
 	const [amount, setAmount] = useState('');
@@ -27,10 +27,10 @@ export const Trust = ({ contract, account, dispatch }) => {
 	};
 
 	return <>
-		<p>Trust Contract: {contract.contractId}</p>
+        <h4>Trust Contract: {contract.contractId}</h4>
 		<p>Balance: {account.trustBalance}</p>
 
-		<p>Make a Deposit to the Trust Contract</p>
+		<p>Make a Deposit</p>
 		<input id="amount" placeholder="Amount (N)" onChange={(e) => setAmount(e.target.value)} />
 		<br />
 		<br />

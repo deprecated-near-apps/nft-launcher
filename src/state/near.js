@@ -33,17 +33,19 @@ export const initNear = () => async ({ update, getState, dispatch }) => {
     
 	let account;
 	if (wallet.signedIn) {
-		wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
-		account = wallet.account();
-	}
+        account = wallet.account();
+        const result = await dispatch(signFetch(account, 'http://localhost:3000/has-access-key'))
+        if (result && result.success) {
+            wallet.balance = formatNearAmount((await wallet.account().getAccountBalance()).available, 2);
+            await update('', { near, wallet, account });
+            return dispatch(initContract());
+        }
+        wallet.signOut()
+    }
 
-	update('', { near, wallet, account });
-    
-	dispatch(initContract());
+    await update('', { near, wallet });
 };
 
-export const signFetch = (url, data = {}) => async ({ getState }) => {
-	const { account } = await getState();
-	const result = await postSignedJson({ account, contractName, url, data });
-	console.log(result);
+export const signFetch = (account, url, data = {}) => async ({ getState }) => {
+	return await postSignedJson({ account, contractName, url, data });
 };
