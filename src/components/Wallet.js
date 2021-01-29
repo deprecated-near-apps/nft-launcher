@@ -1,20 +1,20 @@
 import React from 'react';
 
-export const Wallet = ({ wallet, account }) => {
-	if (!wallet) return null;
+export const Wallet = ({ walletAccount }) => {
+	if (!walletAccount) return null;
 
-	if (account) {
+	if (walletAccount.signedIn) {
 		return <>
-            <h4>Account</h4>
-			<p>Signed In: { account.accountId }</p>
-			<p>Balance: { wallet.balance }</p>
-			<button onClick={() => wallet.signOut()}>Sign Out</button>
+			<h3>Wallet Account</h3>
+			<p>Signed In: { walletAccount.accountId }</p>
+			<p>Balance: { walletAccount.balance }</p>
+			<button onClick={() => walletAccount.signOut()}>Sign Out</button>
 		</>;
 	}
 
 	return <>
-        <p>Sign in with your NEAR Wallet</p>
-        <button onClick={() => wallet.signIn()}>Sign In</button>
-    </>;
+		<p>Sign in with your NEAR Wallet</p>
+		<button onClick={() => walletAccount.signIn()}>Sign In</button>
+	</>;
 };
 

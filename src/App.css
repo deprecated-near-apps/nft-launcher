@@ -7,6 +7,11 @@ body {
     margin: 16px;
 }
 
-button {
+button, input {
     margin-right: 16px;
+    margin-bottom: 16px;
+}
+
+input {
+    width: 500px;
 }

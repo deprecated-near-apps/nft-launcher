@@ -11,18 +11,24 @@ import './App.css';
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
     
-    const { near, wallet, account, contract } = state;
+	const { near, walletAccount, localKeys, loading } = state;
 
 	const onMount = () => {
 		dispatch(onAppMount());
 	};
 	useEffect(onMount, []);
     
+	if (loading) {
+		return <div className="root">
+			<h3>Workin on it!</h3>
+		</div>;
+	}
+    
 	return (
 		<div className="root">
-			<Wallet {...{ wallet, account }} />
-            <Keys {...{ near, account, dispatch }} />
-			<Contract {...{ contract, account, dispatch }} />
+			<Keys {...{ near, update, localKeys }} />
+			<Contract {...{ near, update, localKeys, walletAccount }} />
+			<Wallet {...{ walletAccount }} />
 		</div>
 	);
 };

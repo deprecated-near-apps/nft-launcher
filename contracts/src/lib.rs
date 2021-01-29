@@ -1,6 +1,6 @@
 use borsh::{ BorshDeserialize, BorshSerialize };
 use near_sdk::{
-    env, near_bindgen, AccountId, PublicKey, Balance, Promise,
+    env, near_bindgen, AccountId, PublicKey, Promise,
     collections::{ UnorderedMap },
     json_types::{ U128, Base58PublicKey },
 };
@@ -15,7 +15,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub struct MessageForSale {
     pub owner: AccountId,
     pub message: String,
-    pub amount: Balance,
+    pub amount: U128,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -48,7 +48,7 @@ impl Messages {
         self.messages.insert(&signer_pk, &MessageForSale {
             owner,
             message,
-            amount: amount.into(),
+            amount,
         });
     }
 
@@ -57,7 +57,7 @@ impl Messages {
         let deposit = env::attached_deposit();
         let pk: PublicKey = public_key.into();
         let message = self.messages.get(&pk).expect("No message");
-        assert!(deposit == message.amount.clone(), "Not enough tokens");
+        assert!(deposit == message.amount.clone().into(), "Not enough tokens");
         self.messages.remove(&pk);
         Promise::new(message.owner.clone()).transfer(deposit);
         message

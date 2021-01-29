@@ -2,10 +2,10 @@ const BN = require('bn.js');
 const fetch = require('node-fetch');
 const nearAPI = require('near-api-js');
 const { KeyPair, Account, Contract, utils: { format: { parseNearAmount } } } = nearAPI;
-const { near, connection, keyStore, contract, contractAccount } = require('./near-utils')
+const { near, connection, keyStore, contract, contractAccount } = require('./near-utils');
 const getConfig = require('../src/config');
 const {
-    networkId, contractName, contractMethods, DEFAULT_NEW_ACCOUNT_AMOUNT
+	networkId, contractName, contractMethods, DEFAULT_NEW_ACCOUNT_AMOUNT
 } = getConfig();
 
 /********************************
@@ -15,7 +15,7 @@ async function createAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOU
 	const contractAccount = new Account(connection, contractName);
 	const newKeyPair = KeyPair.fromRandom('ed25519');
 	await contractAccount.createAccount(accountId, newKeyPair.publicKey, new BN(parseNearAmount(fundingAmount)));
-    keyStore.setKey(networkId, accountId, newKeyPair);
+	keyStore.setKey(networkId, accountId, newKeyPair);
 	return new nearAPI.Account(connection, accountId);
 }
 
@@ -70,9 +70,9 @@ async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT)
 };
 
 const createAccessKeyAccount = (key) => {
-    connection.signer.keyStore.setKey(networkId, contractName, key)
-    return new Account(connection, contractName)
-}
+	connection.signer.keyStore.setKey(networkId, contractName, key);
+	return new Account(connection, contractName);
+};
 
 const postSignedJson = async ({ account, contractName, url, data = {} }) => {
 	return await fetch(url, {
@@ -85,20 +85,31 @@ const postSignedJson = async ({ account, contractName, url, data = {} }) => {
 			...(await getSignature(account))
 		})
 	}).then((res) => {
-        console.log(res)
-        return res.json()
-    });
+		// console.log(res)
+		return res.json();
+	});
+};
+
+const postJson = async ({ url, data = {} }) => {
+	return await fetch(url, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ ...data })
+	}).then((res) => {
+		console.log(res);
+		return res.json();
+	});
 };
 
 module.exports = { 
-    near,
-    connection,
-    keyStore,
-    getContract,
-    contract,
-    contractName,
-    contractMethods,
-    contractAccount,
-    createAccessKeyAccount,
-    initContract, getAccount, postSignedJson
+	near,
+	connection,
+	keyStore,
+	getContract,
+	contract,
+	contractName,
+	contractMethods,
+	contractAccount,
+	createAccessKeyAccount,
+	initContract, getAccount, postSignedJson, postJson
 };

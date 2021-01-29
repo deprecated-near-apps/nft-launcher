@@ -7,6 +7,7 @@
     "dependencies": {
         "bn": "^1.0.5",
         "near-api-js": "^0.36.2",
+        "near-seed-phrase": "^0.1.0",
         "parcel": "^2.0.0-beta.1",
         "react": "^17.0.1",
         "react-dom": "^17.0.1"
@@ -31,7 +32,7 @@
         "fix": "eslint src/ test/ server/ --fix",
         "build:contracts": "(cd contracts && ./build.sh)",
         "patch:config": "node ./utils/patch-config.js",
-        "dev:deploy": "yarn build:contracts && rm -rf neardev && (DEV_DEPLOY=true near dev-deploy || exit 0) && yarn patch:config && DEV_DEPLOY=false",
+        "dev:deploy": "yarn build:contracts && rm -rf neardev && (near dev-deploy || exit 0) && yarn patch:config",
         "test:unit": "(cd contracts && cargo test -- --nocapture --color always)",
         "test:deploy": "yarn dev:deploy && yarn test",
         "test": "REACT_APP_ENV=dev jest app.test.js --useStderr",

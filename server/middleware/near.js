@@ -2,7 +2,7 @@
 const nacl = require('tweetnacl');
 const crypto = require('crypto');
 const bs58 = require('bs58');
-const { near, connection, contractAccount } = require('../utils/near-utils')
+const { near, connection, contractAccount } = require('../utils/near-utils');
 
 const withNear = () => (req, res, next) => {
 	req.near = near;
@@ -29,7 +29,7 @@ const verifySignature = async (accountId, data, signature, contractName = '') =>
 			accessKeys = accessKeys.filter(({ access_key: { permission }}) => permission && permission.FunctionCall && permission.FunctionCall.receiver_id === contractName);
 		} else {
 			accessKeys = accessKeys.filter(({ access_key: { permission }}) => permission === 'FullAccess');
-        }
+		}
 		return accessKeys.some(({ public_key }) => {
 			const publicKey = public_key.replace('ed25519:', '');
 			return nacl.sign.detached.verify(hash, Buffer.from(signature, 'base64'), bs58.decode(publicKey));
@@ -41,7 +41,7 @@ const verifySignature = async (accountId, data, signature, contractName = '') =>
 };
 
 const hasAccessKey = async (req, res, next) => {
-    const { accountId, contractName, blockNumber, blockNumberSignature } = req.body;
+	const { accountId, contractName, blockNumber, blockNumberSignature } = req.body;
     
 	if (!accountId || !contractName || !blockNumber || !blockNumberSignature) {
 		return res.status(403).send({ error: 'You must provide an accountId, contractName, blockNumber, and blockNumberSignature' });
@@ -59,7 +59,7 @@ const hasAccessKey = async (req, res, next) => {
 };
 
 module.exports = {
-    contractAccount,
+	contractAccount,
 	withNear,
 	hasAccessKey,
 };

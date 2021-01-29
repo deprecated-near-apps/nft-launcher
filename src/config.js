@@ -1,4 +1,4 @@
-const contractName = 'dev-1611852369177-1941211';
+const contractName = 'dev-1611940874435-8461219';
 
 module.exports = function getConfig(isServer = false) {
 	let config = {
@@ -7,9 +7,9 @@ module.exports = function getConfig(isServer = false) {
 		walletUrl: 'https://wallet.testnet.near.org',
 		helperUrl: 'https://helper.testnet.near.org',
 		contractName,
-    };
+	};
     
-	if ((!process.env.DEV_DEPLOY || process.env.DEV_DEPLOY === 'false') && (isServer || process.env.REACT_APP_ENV === 'dev')) {
+	if (process.env.REACT_APP_ENV !== undefined) {
 		config = {
 			...config,
 			GAS: '200000000000000',
@@ -19,7 +19,7 @@ module.exports = function getConfig(isServer = false) {
 				viewMethods: ['get_message'],
 			},
 		};
-    }
+	}
     
 	if (process.env.REACT_APP_ENV === 'prod') {
 		config = {

@@ -18,7 +18,7 @@ export const State = (initialState, prefix) => {
 			state[first] = {};
 		}
 		if (pathArr.length === 1) {
-			state[first] = !!newState && typeof newState === 'object' ? {
+			state[first] = !!newState && typeof newState === 'object' && !Array.isArray(newState) ? {
 				...state[first],
 				...newState
 			} : newState;

@@ -1,98 +1,113 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react';
 import * as nearAPI from 'near-api-js';
-import { get, set, del } from '../utils/storage'
-import { contractName, createAccessKeyAccount, postJson } from '../utils/near-utils'
+import { get, set, del } from '../utils/storage';
+import { generateSeedPhrase } from 'near-seed-phrase';
+import { 
+	contractName,
+	createAccessKeyAccount,
+	postJson,
+	postSignedJson
+} from '../utils/near-utils';
 
-const LOCAL_APP_KEYS = '__LOCAL_APP_KEYS'
+const LOCAL_KEYS = '__LOCAL_KEYS';
+
 const {
-    KeyPair
+	KeyPair,
+	utils: { PublicKey }
 } = nearAPI;
 
-import { signFetch } from '../state/near';
+export const Keys = ({ near, update, localKeys }) => {
+	if (!near.connection) return null;
 
-export const Keys = ({ near }) => {
+	useEffect(() => {
+		if (!localKeys) loadKeys();
+	}, []);
 
-    const [key, setKey] = useState()
-    const [keys, setKeys] = useState([])
+	const loadKeys = async () => {
+		const { seedPhrase, accountId, accessPublic, accessSecret } = get(LOCAL_KEYS);
+		if (!seedPhrase) return;
+		update('localKeys', { seedPhrase, accountId, accessPublic, accessSecret });
+	};
 
+	const getNewAccount = async () => {
+		update('loading', true);
+		const { seedPhrase, publicKey } = generateSeedPhrase();
+		const accountId = Buffer.from(PublicKey.from(publicKey).data).toString('hex');
+		const keyPair = await getNewAccessKey();
+		if (keyPair) {
+			const keys = {
+				seedPhrase,
+				accountId,
+				accessPublic: keyPair.publicKey.toString(),
+				accessSecret: keyPair.secretKey
+			};
+			update('localKeys', keys);
+			set(LOCAL_KEYS, keys);
+		} else {
+			alert('Something happened. Try "Get New App Key" again!');
+		}
+		update('loading', false);
+	};
 
-    useEffect(() => {
-        if (!keys.length) loadAndCheckKeys()
-    }, [])
+	const getNewAccessKey = async (selfUpdate = false) => {
+		const keyPair = KeyPair.fromRandom('ed25519');
+		// WARNING NO RESTRICTION ON THIS ENDPOINT
+		const result = await postJson({
+			url: 'http://localhost:3000/add-key',
+			data: { publicKey: keyPair.publicKey.toString() }
+		});
+		if (result && result.success) {
+			const isValid = await checkAccessKey(keyPair);
+			if (isValid) {
+				if (!localKeys || !selfUpdate) {
+					return keyPair;
+				}
+				localKeys.accessPublic = keyPair.publicKey.toString(),
+				localKeys.accessSecret = keyPair.secretKey;
+				update('localKeys', localKeys);
+				set(LOCAL_KEYS, localKeys);
+			}
+		}
+		return null;
+	};
 
-    const loadAndCheckKeys = async () => {
-        const keys = get(LOCAL_APP_KEYS, [])
-        await Promise.all(keys.map(async (k) => {
-            const isValid = await checkKey(KeyPair.fromString(k))
-            if (!isValid) keys.splice(keys.indexOf(k), 1)
-            set(LOCAL_APP_KEYS, keys)
-        }))
-        setKeys(keys)
-    }
+	const checkAccessKey = async (key) => {
+		const account = createAccessKeyAccount(near, key);
+		const result = await postSignedJson({
+			url: 'http://localhost:3000/has-access-key',
+			contractName,
+			account
+		});
+		return result && result.success;
+	};
 
-    const generateKey = () => {
-        const keyPair = KeyPair.fromRandom('ed25519')
-        setKey(keyPair)
-    }
-
-    const checkKey = async (key) => {
-        const accessKeyAccount = createAccessKeyAccount(near, key)
-        const result = await dispatch(signFetch(accessKeyAccount, 'http://localhost:3000/has-access-key'))
-        return result && result.success
-    }
-
-    const addKey = async () => {
-        const result = await postJson('http://localhost:3000/add-key', { publicKey: key.publicKey.toString() })
-        if (result && result.success) {
-            const isValid = await checkKey(key)
-            if (isValid) {
-                keys.push(key.toString())
-                setKey(null)
-                setKeys(keys)
-                set(LOCAL_APP_KEYS, keys)
-            } else {
-                alert('key was not added')
-            }
-        } else {
-            alert(result.error)
-        }
-    }
+	const deleteAccessKeys = async () => {
+		update('loading', true);
+		// WARNING NO RESTRICTION ON THIS ENDPOINT
+		const result = await fetch('http://localhost:3000/delete-access-keys').then((res) => res.json());
+		if (result && result.success) {
+			update('localKeys', null);
+			del(LOCAL_KEYS);
+		}
+		update('loading', false);
+	};
 
 	return <>
-        <h4>Add Keys</h4>
-        <button onClick={() => generateKey()}>Generate Key</button>
-        { key && <>
-            <p>Key: {key.publicKey.toString()}</p>
-            <button onClick={() => addKey()}>Add Key</button>
-        </> }
-
-        <h4>My Keys</h4>
-        {
-            keys.length > 0 ?
-            keys.map((k) => {
-                const keyPair = KeyPair.fromString(k)
-                const publicKey = keyPair.publicKey.toString()
-                return <div key={publicKey}>
-                    <span style={{display: 'inline-block', margin: '4px 16px'}}>{ publicKey }</span>
-                    <button onClick={async () => {
-                        const isValid = await checkKey(keyPair)
-                        if (isValid) alert('key exists on account ' + contractName)
-                        else alert('key does not exist on account ' + contractName)
-                    }}>Check Key</button>
-                </div>
-            }) :
-            <p>You have no keys in localStorage</p>
-        }
-
-        <h4>Delete All Access Keys</h4>
-        <button onClick={async () => {
-            // WARNING NO RESTRICTION ON THIS ENDPOINT
-            const result = await fetch('http://localhost:3000/delete-access-keys').then((res) => res.json())
-            if (result && result.success) {
-                setKeys([])
-            }
-        }}>Delete All Access Keys</button>
-
+		<h3>Implicit Account</h3>
+		{ localKeys && localKeys.seedPhrase ?
+			<>
+				<p><b>Seed Phrase:</b> {localKeys.seedPhrase}</p>
+				<p><b>Implicit Account Id:</b> {localKeys.accountId}</p>
+				<p><b>App Key:</b> {localKeys.accessPublic}</p>
+				<button onClick={() => getNewAccessKey(true)}>Get New App Key</button>
+				<br />
+				<button onClick={() => deleteAccessKeys()}>Remove Account</button>(warning removes all access keys from contract, for you and everyone else)
+			</> :
+			<>
+				<p>Creates a seed phrase + access key to interact with the app. Normally you would set up your seed phrase with a wallet and the app would add an access key.</p>
+				<button onClick={() => getNewAccount()}>Get New Account</button>
+			</>
+		}
 	</>;
 };
 
