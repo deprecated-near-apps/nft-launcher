@@ -11,7 +11,7 @@ import './App.css';
 const App = () => {
 	const { state, dispatch, update } = useContext(appStore);
     
-	const { near, walletAccount, localKeys, loading } = state;
+	const { near, wallet, account, localKeys, loading } = state;
 
 	const onMount = () => {
 		dispatch(onAppMount());
@@ -27,8 +27,8 @@ const App = () => {
 	return (
 		<div className="root">
 			<Keys {...{ near, update, localKeys }} />
-			<Contract {...{ near, update, localKeys, walletAccount }} />
-			<Wallet {...{ walletAccount }} />
+			<Contract {...{ near, update, localKeys, wallet, account }} />
+			<Wallet {...{ wallet, account }} />
 		</div>
 	);
 };

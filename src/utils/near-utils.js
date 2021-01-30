@@ -60,7 +60,6 @@ export const createAccessKeyAccount = (near, key) => {
 	key.toString = () => key.secretKey;
 	near.connection.signer.keyStore.setKey(networkId, contractName, key);
 	const account = new Account(near.connection, contractName);
-	account.implicitId = Buffer.from(key.publicKey.data).toString('hex');
 	return account;
 };
 

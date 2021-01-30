@@ -11,7 +11,7 @@ const {
 	utils: { format: { formatNearAmount } }
 } = nearAPI;
 
-export const Contract = ({ near, update, localKeys = {}, walletAccount }) => {
+export const Contract = ({ near, update, localKeys = {}, account }) => {
 	if (!localKeys || !localKeys.accessPublic) return null;
 
 	const [message, setMessage] = useState('');
@@ -46,8 +46,8 @@ export const Contract = ({ near, update, localKeys = {}, walletAccount }) => {
 			return;
 		}
 		update('loading', true);
-		const implicitAccount = createAccessKeyAccount(near, KeyPair.fromString(localKeys.accessSecret));
-		const contract = getContract(implicitAccount);
+		const appAccount = createAccessKeyAccount(near, KeyPair.fromString(localKeys.accessSecret));
+		const contract = getContract(appAccount);
 		await contract.create({
 			message,
 			amount: parseNearAmount(amount),
@@ -63,7 +63,7 @@ export const Contract = ({ near, update, localKeys = {}, walletAccount }) => {
 			return;
 		}
 		update('loading', true);
-		const contract = getContract(walletAccount.account);
+		const contract = getContract(account);
 		let result;
 		try {
 			result = await contract.get_message({ public_key: purchaseKey });
@@ -106,7 +106,7 @@ export const Contract = ({ near, update, localKeys = {}, walletAccount }) => {
 				</>
 		}
 		{
-			walletAccount &&
+			account &&
             <>
             	<h3>Buy a Message</h3>
             	<input placeholder="App Key" value={purchaseKey} onChange={(e) => setPurchaseKey(e.target.value)} />
