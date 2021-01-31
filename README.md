@@ -4,6 +4,20 @@ Most of this repo is how to use React 17 with useContext and useReducer.
 
 There is a helper in `src/utils/state` that handles a lot of this. You can follow the code as an example or read below to understand how it works.
 
+## Installation
+
+Beyond having npm and node (latest versions), you should have Rust installed. I recommend nightly because living on the edge is fun.
+
+https://rustup.rs/
+
+Also recommend installing near-cli globally
+
+`npm i -g near-cli`
+
+Everything else can be installed via:
+`yarn`
+`cd server && yarn`
+
 ## NEAR Config
 
 There is only one config.js file found in `src/config.js`, this is also used for running tests.
@@ -14,9 +28,15 @@ Using `src/config.js` you can set up your different environments. Use `REACT_APP
 
 You can run unit tests in the Rust contracts themselves, but it may be more useful to JS tests against testnet itself.
 
+Note: to run the app and server tests make sure you install and start the server.
+- cd server
+- yarn && yarn start
+
 Commands:
-- `test:deploy` - will deploy a new dev account (`/neardev`) and deploy a new contract to this account
-- `test` will simply run the tests against the contract already deployed
+- `test` will simply run app tests against the contract already deployed. You can mess around with `app.test.js` and try different frontend stuff
+- `test:deploy` - will deploy a new dev account (`/neardev`) and deploy a new contract to this account, then run `test`
+- `test:server` - will test the server, make sure you start it (see "Note" above)
+- `test:unit` - runs the rust unit tests
 
 If you've changed your contract or your dev account has run out of funds use `test:deploy`, if you're updating your JS tests only then use `test`.
 
