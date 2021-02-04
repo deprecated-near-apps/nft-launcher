@@ -55,7 +55,7 @@ export const Keys = ({ near, update, localKeys }) => {
 		const result = await postJson({
 			url: 'http://localhost:3000/add-key',
 			data: { publicKey: keyPair.publicKey.toString() }
-		});
+        });
 		if (result && result.success) {
 			const isValid = await checkAccessKey(keyPair);
 			if (isValid) {
