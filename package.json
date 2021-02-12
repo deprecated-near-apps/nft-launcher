@@ -33,6 +33,7 @@
         "build:contracts": "(cd contracts && ./build.sh)",
         "patch:config": "node ./utils/patch-config.js",
         "dev:deploy": "yarn build:contracts && rm -rf neardev && (near dev-deploy || exit 0) && yarn patch:config",
+        
         "test:unit": "(cd contracts && cargo test -- --nocapture --color always)",
         "test:deploy": "yarn dev:deploy && yarn test",
         "test": "REACT_APP_ENV=dev jest app.test.js --useStderr",

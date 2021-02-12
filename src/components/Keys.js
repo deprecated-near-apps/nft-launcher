@@ -50,6 +50,7 @@ export const Keys = ({ near, update, localKeys }) => {
 	};
 
 	const getNewAccessKey = async (selfUpdate = false) => {
+		update('loading', true);
 		const keyPair = KeyPair.fromRandom('ed25519');
 		// WARNING NO RESTRICTION ON THIS ENDPOINT
 		const result = await postJson({
@@ -60,6 +61,7 @@ export const Keys = ({ near, update, localKeys }) => {
 			const isValid = await checkAccessKey(keyPair);
 			if (isValid) {
 				if (!localKeys || !selfUpdate) {
+                    update('loading', false);
 					return keyPair;
 				}
 				localKeys.accessPublic = keyPair.publicKey.toString(),
@@ -68,6 +70,7 @@ export const Keys = ({ near, update, localKeys }) => {
 				set(LOCAL_KEYS, localKeys);
 			}
 		}
+        update('loading', false);
 		return null;
 	};
 
@@ -93,13 +96,19 @@ export const Keys = ({ near, update, localKeys }) => {
 	};
 
 	return <>
-		<h3>Implicit Account</h3>
+		<h3>Your Local Guest Account</h3>
+        <p>The seed phrase and associated implicitAccountId do not have to be revealed to the application. This is similar to a JWT, where only the implicitAccountId may need to be known by the app. The seed phrase is presented only for convenience.</p>
 		{ localKeys && localKeys.seedPhrase ?
 			<>
 				<p><b>Seed Phrase:</b> {localKeys.seedPhrase}</p>
 				<p><b>Implicit Account Id:</b> {localKeys.accountId}</p>
-				<p><b>App Key:</b> {localKeys.accessPublic}</p>
-				<button onClick={() => getNewAccessKey(true)}>Get New App Key</button>
+				
+                <h3>Current App Key</h3>
+                <p>An app key with a limited allowance of NEAR to spend on gas fees has been added to the app's contract account. This will allow a user to "mint" a message and set a price, without having NEAR tokens.</p>
+                <p>This calls an endpoint on the server (see /server/app.js) that will add the access key using the contract account's master key.</p>
+                <p>{localKeys.accessPublic}</p>
+				<button onClick={() => getNewAccessKey(true)}>Get New App Key</button>(warning removes current message for sale, if there is one)
+                <p>Each app key can be associated with one message for sale.</p>
 				<br />
 				<button onClick={() => deleteAccessKeys()}>Remove Account</button>(warning removes all access keys from contract, for you and everyone else)
 			</> :

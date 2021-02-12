@@ -4,11 +4,25 @@ This repo is a companion to this video:
 
 [![Live App Review 1 - App Access Keys](https://img.youtube.com/vi/dT99JLpO2Q8/0.jpg)](https://www.youtube.com/watch?v=dT99JLpO2Q8)
 
-# NEAR App Boilerplate
 
-Most of this repo is how to use React 17 with useContext and useReducer.
+# Feedback (TODO)
 
-There is a helper in `src/utils/state` that handles a lot of this. You can follow the code as an example or read below to understand how it works.
+Will there be an option to test / run app against a contract that is long lived on testnet?
+Use case: shared data sets, more testability, better starting point
+Separate script for shared namespace
+
+Server should include warning if config loaded is not current dev account, ping dev folder and crash and restart
+
+Step by step high level (matching what's in the frontend)
+
+Better installation guide / step by
+
+Question: why create brand new dev accounts every time? Why not have a consistent namespace for your app? Destroy / RE-create same name.
+Answer: dev accounts for rapid iteration, then deploy to serious name (accidental deploy over existing account?)
+
+Kitchen Sink
+npm library for near dev build scripts and utils???
+
 
 ## Installation
 

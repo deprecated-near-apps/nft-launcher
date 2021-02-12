@@ -89,15 +89,16 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
 		{
 			messageForSale ?
 				<>
-					<h3>Message for Sale</h3>
-					<p><b>App Key:</b> { localKeys.accessPublic }</p>
+					<h2>2b. Message is Posted for Sale</h2>
+					<p><b>Key:</b> { localKeys.accessPublic }</p>
 					<p><b>Message:</b> { messageForSale.message }</p>
 					<p><b>Amount:</b> { messageForSale.amount }</p>
 				</> :
 				<>
-					<h3>Sell a Message</h3>
-					<p>Seller Account Id: { localKeys.accountId }</p>
-					<p>Using App Key: { localKeys.accessPublic }</p>
+					<h2>2. Sell a Message</h2>
+                    <p>Using your implicitAccountId + app key (different keyPair), create a message (string) with a price in NEAR tokens to be sold.</p>
+					{/* <p>Selling Account Id: { localKeys.accountId }</p>
+					<p>Using App Key: { localKeys.accessPublic }</p> */}
 					<input placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} />
 					<br />
 					<input placeholder="Amount (N)" value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -108,8 +109,9 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
 		{
 			account &&
             <>
-            	<h3>Buy a Message</h3>
-            	<input placeholder="App Key" value={purchaseKey} onChange={(e) => setPurchaseKey(e.target.value)} />
+            	<h2>3b. Buy a Message</h2>
+                <p></p>
+            	Key: <input placeholder="Key" value={purchaseKey} onChange={(e) => setPurchaseKey(e.target.value)} />
             	<br />
             	<button onClick={() => handleBuyMessage()}>Buy Message</button>
             </>
