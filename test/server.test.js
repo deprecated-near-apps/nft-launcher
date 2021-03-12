@@ -2,56 +2,116 @@ const nearAPI = require('near-api-js');
 const testUtils = require('./test-utils');
 const getConfig = require('../src/config');
 
-const { KeyPair, utils: { format: { parseNearAmount }} } = nearAPI;
-const { keyStore, initContract, getAccount, contractAccount, postSignedJson, postJson } = testUtils;
-const { contractName, networkId } = getConfig();
+const { Account, KeyPair, utils: { format: { parseNearAmount }} } = nearAPI;
+const { near, TEST_HOST, initContract, getAccount, contractAccount: ownerAccount, postJson } = testUtils;
+const { GAS, contractName: ownerId, networkId } = getConfig();
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
 
-describe('deploy contract ' + contractName, () => {
-	let alice;
-	let accessKey;
+describe('deploy API owned by: ' + ownerId, () => {
+	let alice, contractAlice, bob, bobId, bobAccount;
+    const name = `token-${Date.now()}`
+    const tokenId = `${name}.${ownerId}`
+    const guestId = 'guests.' + ownerId
 
 	beforeAll(async () => {
 		alice = await getAccount();
 		await initContract();
 	});
 
-	test('contract hash', async () => {
-		let state = await (await getAccount(contractName)).state();
-		expect(state.code_hash).not.toEqual('11111111111111111111111111111111');
+    /// API
+	test('deploy token', async () => {
+		const { success, result } = await postJson({
+            url: TEST_HOST + '/launch-token',
+            data: {
+                name,
+                symbol: 'TEST',
+                totalSupply: parseNearAmount('1000000'),
+            }
+        })
+        expect(success).toEqual(true)
 	});
 
-	test('check wallet sign in', async () => {
-		// simulated wallet sign in
-		// add a new key and manually set the signer for alice to the access key instead of full access key
-		const newKeyPair = KeyPair.fromRandom('ed25519');
-		await alice.addKey(newKeyPair.publicKey, contractName, null, parseNearAmount('0.1'));
-		keyStore.setKey(networkId, alice.accountId, newKeyPair);
-		const result = await postSignedJson({ account: alice, contractName, url: 'http://localhost:3000/has-access-key/' });
-		expect(result.success).toEqual(true);
+    /// API
+	test('add guest user', async () => {
+		bobId = 'bob.' + tokenId
+        const keyPair = KeyPair.fromRandom('ed25519');
+        /// bob's key signs tx from guest account (sponsored)
+        near.connection.signer.keyStore.setKey(networkId, guestId, keyPair)
+        bobAccount = new Account(near.connection, guestId)
+
+        const { success, result } = await postJson({
+            url: TEST_HOST + '/add-guest',
+            data: {
+                account_id: bobId,
+                public_key: keyPair.publicKey.toString(),
+            }
+        })
+        expect(success).toEqual(true)
 	});
 
-	test('check adding key to contract account', async () => {
-		accessKey = KeyPair.fromRandom('ed25519');
-		const publicKey = accessKey.publicKey.toString();
-		const result = await postJson({
-			url: 'http://localhost:3000/add-key/',
-			data: {
-				publicKey
-			}
-		});
-		expect(result.success).toEqual(true);
-		const accessKeys = await contractAccount.getAccessKeys();
-		expect(accessKeys.find(({ public_key }) => public_key === publicKey)).not.toEqual(undefined);
+
+    /// CLIENT
+	test('bob guest claim drop self', async () => {
+		await bobAccount.functionCall(tokenId, 'claim_drop', {}, GAS)
+        const balance = await bobAccount.viewFunction(tokenId, 'ft_balance_of', { account_id: bobId }, GAS)
+        expect(balance).toEqual(parseNearAmount('100'))
 	});
 
-	test('check using contract key', async () => {
-		// use the access key from the previous test to sign txs on behalf of the contract account now
-		keyStore.setKey(networkId, contractName, accessKey);
-		const result = await postSignedJson({ account: contractAccount, contractName, url: 'http://localhost:3000/has-access-key/' });
-		console.log(result);
-		expect(result.success).toEqual(true);
+    /// CLIENT
+	test('owner transfer tokens to guest (client)', async () => {
+		await ownerAccount.functionCall(tokenId, 'ft_transfer', {
+            receiver_id: bobId,
+            amount: parseNearAmount('50'),
+        }, GAS, 1)
+        const balance = await bobAccount.viewFunction(tokenId, 'ft_balance_of', { account_id: bobId }, GAS)
+        expect(balance).toEqual(parseNearAmount('150'))
+	});
+
+    /// API
+	test('owner transfer tokens to guest (api)', async () => {
+		const { success, result } = await postJson({
+            url: TEST_HOST + '/transfer-tokens',
+            data: {
+                tokenId,
+                receiver_id: bobId,
+                amount: parseNearAmount('50'),
+            }
+        })
+        expect(success).toEqual(true)
+        const balance = await bobAccount.viewFunction(tokenId, 'ft_balance_of', { account_id: bobId }, GAS)
+        expect(balance).toEqual(parseNearAmount('200'))
+	});
+
+    /// CLIENT
+	test('bob guest transfer to alice', async () => {
+        /// send tokens to alice who needs to register her storage
+		const storageMinimum = await alice.viewFunction(tokenId, 'storage_minimum_balance', {});
+		await alice.functionCall(tokenId, 'storage_deposit', {}, GAS, storageMinimum);
+        const amount = parseNearAmount('100')
+		await bobAccount.functionCall(tokenId, 'ft_transfer_guest', { receiver_id: alice.accountId, amount }, GAS)
+        const balance = await bobAccount.viewFunction(tokenId, 'ft_balance_of', { account_id: bobId }, GAS)
+        expect(balance).toEqual(amount)
+        const balance2 = await bobAccount.viewFunction(tokenId, 'ft_balance_of', { account_id: alice.accountId }, GAS)
+        expect(balance2).toEqual(amount)
+	});
+
+    /// CLIENT
+	test('bob upgrades to full account', async () => {
+        const keyPair = KeyPair.fromRandom('ed25519');
+		const keyPair2 = KeyPair.fromRandom('ed25519');
+		const public_key = keyPair.publicKey.toString();
+		const public_key2 = keyPair2.publicKey.toString();
+		near.connection.signer.keyStore.setKey(networkId, bobId, keyPair);
+		await bobAccount.functionCall(tokenId, 'upgrade_guest', {
+			public_key,
+			access_key: public_key2,
+			method_names: '',
+		}, GAS);
+		/// update account and contract for bob (bob now pays gas)
+		const balance = await testUtils.getAccountBalance(bobId);
+		/// creating account only moves 0.5 NEAR and the rest is still wNEAR
+		expect(balance.total).toEqual(parseNearAmount('0.5'));
 	});
 
 });

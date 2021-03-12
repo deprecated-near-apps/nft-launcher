@@ -5,58 +5,45 @@ const { KeyPair, Account, Contract, utils: { format: { parseNearAmount } } } = n
 const { near, connection, keyStore, contract, contractAccount } = require('./near-utils');
 const getConfig = require('../src/config');
 const {
-	networkId, contractName, contractMethods, DEFAULT_NEW_ACCOUNT_AMOUNT
+	networkId, contractName, contractMethods,
+	DEFAULT_NEW_ACCOUNT_AMOUNT, 
 } = getConfig();
 
-/********************************
-Internal Helpers
-********************************/
-async function createAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT) {
-	const contractAccount = new Account(connection, contractName);
-	const newKeyPair = KeyPair.fromRandom('ed25519');
-	await contractAccount.createAccount(accountId, newKeyPair.publicKey, new BN(parseNearAmount(fundingAmount)));
-	keyStore.setKey(networkId, accountId, newKeyPair);
-	return new nearAPI.Account(connection, accountId);
-}
-
-const getSignature = async (account) => {
-	const { accountId } = account;
-	const block = await account.connection.provider.block({ finality: 'final' });
-	const blockNumber = block.header.height.toString();
-	const signer = account.inMemorySigner || account.connection.signer;
-	const signed = await signer.signMessage(Buffer.from(blockNumber), accountId, networkId);
-	const blockNumberSignature = Buffer.from(signed.signature).toString('base64');
-	return { blockNumber, blockNumberSignature };
-};
-
-function generateUniqueString(prefix) {
-	return `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
-}
-
-/********************************
-Exports
-********************************/
-
+const TEST_HOST = 'http://localhost:3000'
+/// exports
 async function initContract() {
+	/// try to call new on contract, swallow e if already initialized
 	try {
-		await contract.new({ owner_id: contractName });
+        const newArgs = {
+			owner_id: contractAccount.accountId,
+		};
+		await contract.new(newArgs);
 	} catch (e) {
-		if (!/Already initialized/.test(e.toString())) {
+		if (!/initialized/.test(e.toString())) {
 			throw e;
 		}
 	}
 	return { contract, contractName };
 }
+const getAccountBalance = async (accountId) => (new nearAPI.Account(connection, accountId)).getAccountBalance();
 
-async function getContract(account) {
-	return new Contract(account || contractAccount, contractName, {
-		...contractMethods,
-		signer: account || undefined
-	});
-}
+const createOrInitAccount = async(accountId, secret) => {
+	let account;
+	try {
+		account = await createAccount(accountId, DEFAULT_NEW_ACCOUNT_AMOUNT, secret);
+	} catch (e) {
+		if (!/because it already exists/.test(e.toString())) {
+			throw e;
+		}
+		account = new nearAPI.Account(connection, accountId);
+		const newKeyPair = KeyPair.fromString(secret);
+		keyStore.setKey(networkId, accountId, newKeyPair);
+	}
+	return account;
+};
 
 async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT) {
-	accountId = accountId || generateUniqueString('test');
+	accountId = accountId || generateUniqueSubAccount();
 	const account = new nearAPI.Account(connection, accountId);
 	try {
 		await account.state();
@@ -68,6 +55,15 @@ async function getAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT)
 	}
 	return await createAccount(accountId, fundingAmount);
 };
+
+
+async function getContract(account) {
+	return new Contract(account || contractAccount, contractName, {
+		...contractMethods,
+		signer: account || undefined
+	});
+}
+
 
 const createAccessKeyAccount = (key) => {
 	connection.signer.keyStore.setKey(networkId, contractName, key);
@@ -101,15 +97,41 @@ const postJson = async ({ url, data = {} }) => {
 	});
 };
 
+function generateUniqueSubAccount() {
+	return `t${Date.now()}.${contractName}`;
+}
+
+/// internal
+async function createAccount(accountId, fundingAmount = DEFAULT_NEW_ACCOUNT_AMOUNT, secret) {
+	const contractAccount = new Account(connection, contractName);
+	const newKeyPair = secret ? KeyPair.fromString(secret) : KeyPair.fromRandom('ed25519');
+	await contractAccount.createAccount(accountId, newKeyPair.publicKey, new BN(parseNearAmount(fundingAmount)));
+	keyStore.setKey(networkId, accountId, newKeyPair);
+	return new nearAPI.Account(connection, accountId);
+}
+
+const getSignature = async (account) => {
+	const { accountId } = account;
+	const block = await account.connection.provider.block({ finality: 'final' });
+	const blockNumber = block.header.height.toString();
+	const signer = account.inMemorySigner || account.connection.signer;
+	const signed = await signer.signMessage(Buffer.from(blockNumber), accountId, networkId);
+	const blockNumberSignature = Buffer.from(signed.signature).toString('base64');
+	return { blockNumber, blockNumberSignature };
+};
+
 module.exports = { 
+    TEST_HOST,
 	near,
 	connection,
 	keyStore,
 	getContract,
+	getAccountBalance,
 	contract,
 	contractName,
 	contractMethods,
 	contractAccount,
+	createOrInitAccount,
 	createAccessKeyAccount,
-	initContract, getAccount, postSignedJson, postJson
+	initContract, getAccount, postSignedJson, postJson,
 };

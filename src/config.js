@@ -1,4 +1,4 @@
-const contractName = 'dev-1613070919282-6642146';
+const contractName = 'dev-1615493000765-8996452';
 
 module.exports = function getConfig(isServer = false) {
 	let config = {
@@ -14,9 +14,14 @@ module.exports = function getConfig(isServer = false) {
 			...config,
 			GAS: '200000000000000',
 			DEFAULT_NEW_ACCOUNT_AMOUNT: '5',
+			GUESTS_ACCOUNT_SECRET: '7UVfzoKZL4WZGF98C3Ue7tmmA6QamHCiB1Wd5pkxVPAc7j6jf3HXz5Y9cR93Y68BfGDtMLQ9Q29Njw5ZtzGhPxv',
 			contractMethods: {
-				changeMethods: ['new', 'create', 'purchase'],
-				viewMethods: ['get_message'],
+				changeMethods: [
+                    'new', 'nft_mint', 'nft_transfer', 'add_guest', 'remove_guest',
+                    'nft_mint_guest', 'nft_approve_account_id_guest', 'nft_revoke_account_id_guest', 'nft_revoke_all_guest',
+
+                ],
+				viewMethods: ['get_guest', 'nft_token'],
 			},
 		};
 	}
