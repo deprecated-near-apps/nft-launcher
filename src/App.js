@@ -1,45 +1,92 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
 import { appStore, onAppMount } from './state/app';
 
 import { Wallet } from './components/Wallet';
 import { Contract } from './components/Contract';
 import { Keys } from './components/Keys';
+import { Gallery } from './components/Gallery';
 
-import './App.css';
+import Avatar from 'url:./img/avatar.jpg';
+import NearLogo from 'url:./img/near_icon.svg';
+
+import './App.scss';
 
 const App = () => {
-    const { state, dispatch, update } = useContext(appStore);
+	const { state, dispatch, update } = useContext(appStore);
 
-    const { near, wallet, account, localKeys, loading } = state;
+    console.log(state)
+    
+	const { near, wallet, contractAccount, account, localKeys, loading } = state;
+    
+	const [profile, setProfile] = useState(false);
 
-    const onMount = () => {
-        dispatch(onAppMount());
-    };
-    useEffect(onMount, []);
+	const onMount = () => {
+		dispatch(onAppMount());
+	};
+	useEffect(onMount, []);
 
-    if (loading) {
-        return <div className="root">
-            <h3>Workin on it!</h3>
-        </div>;
-    }
+	const signedIn = ((wallet && wallet.signedIn) || (localKeys && localKeys.signedIn));
+	let accountId = '';
+	if (signedIn) {
+		accountId = account ? account.accountId : 'Guest Account';
+	}
 
-    return (
-        <div className="root">
-            <h2>1. Guest Accounts</h2>
-            <p>Set up a guest account (seed phrase + implicitAccountId) and you will also receive an access key that is added to the "contract account".</p>
-            <Keys {...{ near, update, localKeys }} />
-            <Contract {...{ near, update, localKeys, wallet, account }} />
+	if (profile && !signedIn) {
+		setProfile(false);
+	}
+    
+	return <>
+		{ loading && <div className="loading">
+			<img src={NearLogo} />
+		</div>
+		}
+        
+		<div id="menu">
+			<div>
+				<div>
+					<img style={{ opacity: signedIn ? 1 : 0.25 }} src={Avatar} 
+						onClick={() => setProfile(!profile)}
+					/>
+				</div>
+				<div>
+					{ !signedIn ? <Wallet {...{ wallet }} /> : accountId }
+				</div>
+			</div>
+		</div>
 
-            {
-                localKeys && <>
-                    <h2>3. Sign In with NEAR Wallet</h2>
-                    <p>Sign in with a wallet that already has NEAR tokens, and you will be presented above with an option to purchase the message created by the guest account.</p>
-                    <Wallet {...{ wallet, account }} />
-                </>
-            }
-        </div>
-    );
+		{
+			profile && signedIn && <div id="profile">
+				<div>
+					{
+						wallet && wallet.signedIn && <Wallet {...{ wallet, account, update, dispatch, handleClose: () => setProfile(false) }} />
+					}
+					{
+						localKeys && localKeys.signedIn && <Keys {...{ near, update, localKeys }} />
+					}
+				</div>
+			</div>
+		}
+
+		{ !signedIn &&
+            <div id="guest">
+            	<>
+            		<Keys {...{ near, update, localKeys }} />
+            	</>
+            </div>
+		}
+		{ signedIn &&
+            <div id="contract">
+            	{
+            		signedIn &&
+                    <Contract {...{ near, update, localKeys, wallet, account }} />
+            	}
+            </div>
+		}
+		<div id="gallery">
+			<Gallery {...{ near, signedIn, contractAccount, account, localKeys, loading, update }} />
+		</div>
+	</>;
 };
 
 export default App;

@@ -1,9 +1,10 @@
-const contractName = 'dev-1615493000765-8996452';
+const contractName = 'dev-1615782978803-2546372';
 
-module.exports = function getConfig(isServer = false) {
+module.exports = function getConfig() {
 	let config = {
 		networkId: 'default',
 		nodeUrl: 'https://rpc.testnet.near.org',
+		// walletUrl: 'http://localhost:1234',
 		walletUrl: 'https://wallet.testnet.near.org',
 		helperUrl: 'https://helper.testnet.near.org',
 		contractName,
@@ -18,8 +19,7 @@ module.exports = function getConfig(isServer = false) {
 			contractMethods: {
 				changeMethods: [
                     'new', 'nft_mint', 'nft_transfer', 'add_guest', 'remove_guest',
-                    'nft_mint_guest', 'nft_approve_account_id_guest', 'nft_revoke_account_id_guest', 'nft_revoke_all_guest',
-
+                    'nft_mint_guest', 'nft_add_sale_guest', 'nft_remove_sale_guest', 'upgrade_guest'
                 ],
 				viewMethods: ['get_guest', 'nft_token'],
 			},

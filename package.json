@@ -30,7 +30,7 @@
         "build": "parcel build src/index.html --no-source-maps",
         "clean": "rimraf ./dist ./parcel-cache",
         "fix": "eslint src/ test/ server/ --fix",
-        "build:contracts": "(cd contracts && ./build.sh)",
+        "build:contracts": "(cd contracts/nft-simple && ./build.sh) && (cd contracts/market-simple && ./build.sh)",
         "patch:config": "node ./utils/patch-config.js",
         "dev:deploy": "yarn build:contracts && rm -rf neardev && (near dev-deploy || exit 0) && yarn patch:config",
         

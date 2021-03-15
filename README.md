@@ -1,8 +1,8 @@
 # TBD
 
-<!-- This repo is a companion to this video:
+This repo is a companion to this video:
 
-[![Live App Review 1 - App Access Keys](https://img.youtube.com/vi/dT99JLpO2Q8/0.jpg)](https://www.youtube.com/watch?v=dT99JLpO2Q8) -->
+[![Live App Review 1 - App Access Keys](https://img.youtube.com/vi/dT99JLpO2Q8/0.jpg)](https://www.youtube.com/watch?v=dT99JLpO2Q8)
 
 
 # WIP Notes
