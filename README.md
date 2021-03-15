@@ -1,18 +1,20 @@
 # TBD
 
-This repo is a companion to this video:
+This repo is a companion to this video (so far):
 
-[![Live App Review 1 - App Access Keys](https://img.youtube.com/vi/dT99JLpO2Q8/0.jpg)](https://www.youtube.com/watch?v=dT99JLpO2Q8)
+
+
+[![Live App Review 14 - NFT Launcher Contract and Tests (Part 1)](https://img.youtube.com/vi/AtAa8hMRueY/0.jpg)](https://youtu.be/AtAa8hMRueY)
 
 
 # WIP Notes
 
 In Progress Details:
-- NFT Contract (done)
-- Guest Accounts & Admin Methods (done)
-- Server API (WIP)
-- Frontend Demo App (WIP)
-- App / Server Tests (WIP)
+- ✔️ NFT Contract
+- ✔️ Guest Accounts
+- ✔️ App Tests
+- ❌ Server side for adding guests & tests (WIP)
+- ❌ Frontend Demo (WIP)
 
 
 ## Installation
