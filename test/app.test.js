@@ -125,7 +125,7 @@ describe('deploy contract ' + contractName, () => {
             token_contract_id: contractId,
             token_id
         }, GAS);
-        console.log('\n\n', sale, '\n\n');
+        console.log('\n\nsale.status', sale.status, '\n\n');
 	});
 
 	test('purchase nft from market', async () => {
@@ -154,7 +154,6 @@ describe('deploy contract ' + contractName, () => {
 			access_key: public_key2,
 			method_names: '',
 		}, GAS);
-		console.log('RESULT', result);
 		/// update account and contract for bob (bob now pays gas)
 		const balance = await testUtils.getAccountBalance(bobId);
 		expect(balance.total).toEqual(parseNearAmount('0.9'));

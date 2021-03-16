@@ -47,13 +47,14 @@ impl Contract {
         let deposit = env::attached_deposit();
         assert!(deposit >= MIN_ATTACHED_DEPOSIT, "Must attach at least 0.1 NEAR as deposit to list sale");
         let contract_id: AccountId = token_contract_id.into();
+        
+        // if passed we use this as owner for sale info
         let mut owner_id = env::predecessor_account_id();
         if let Some(on_behalf_of) = on_behalf_of {
             owner_id = on_behalf_of;
         }
-
         env::log(format!("add_sale for owner: {}", owner_id.clone()).as_bytes());
-
+        
         self.sales.insert(&format!("{}:{}", contract_id, token_id), &Sale{
             owner_id,
             beneficiary: env::predecessor_account_id(),
@@ -62,7 +63,7 @@ impl Contract {
         });
     }
 
-    #[payable]
+    /// should be able to pull a sale without yocto redirect to wallet?
     pub fn remove_sale(&mut self, token_contract_id: ValidAccountId, token_id: String) {
         let contract_id: AccountId = token_contract_id.into();
         let sale = self.sales.remove(&format!("{}:{}", contract_id, token_id)).expect("No sale");
@@ -107,45 +108,7 @@ impl Contract {
         ))
     }
 
-    pub fn get_sale(&self, token_contract_id: ValidAccountId, token_id: String) -> Sale {
-        let contract_id: AccountId = token_contract_id.into();
-        self.sales.get(&format!("{}:{}", contract_id, token_id.clone())).expect("No sale")
-    }
-}
-
-#[ext_contract(ext_transfer)]
-trait ExtTransfer {
-    fn nft_transfer(
-        &mut self,
-        receiver_id: ValidAccountId,
-        token_id: TokenId,
-        enforce_owner_id: ValidAccountId,
-        memo: String,
-    );
-}
-
-#[ext_contract(ext_self)]
-trait ResolvePurchase {
-    fn nft_resolve_purchase(
-        &mut self,
-        token_contract_id: AccountId,
-        token_id: TokenId,
-        buyer_id: AccountId,
-    ) -> Promise;
-}
-
-trait ResolvePurchase {
-    fn nft_resolve_purchase(
-        &mut self,
-        token_contract_id: AccountId,
-        token_id: TokenId,
-        buyer_id: AccountId,
-    ) -> bool;
-}
-
-#[near_bindgen]
-impl ResolvePurchase for Contract {
-    fn nft_resolve_purchase(
+    pub fn nft_resolve_purchase(
         &mut self,
         token_contract_id: AccountId,
         token_id: TokenId,
@@ -164,4 +127,32 @@ impl ResolvePurchase for Contract {
         Promise::new(buyer_id).transfer(sale.price);
         return false;
     }
+
+    /// view methods
+
+    pub fn get_sale(&self, token_contract_id: ValidAccountId, token_id: String) -> Sale {
+        let contract_id: AccountId = token_contract_id.into();
+        self.sales.get(&format!("{}:{}", contract_id, token_id.clone())).expect("No sale")
+    }
+}
+
+#[ext_contract(ext_self)]
+trait ResolvePurchase {
+    fn nft_resolve_purchase(
+        &mut self,
+        token_contract_id: AccountId,
+        token_id: TokenId,
+        buyer_id: AccountId,
+    ) -> Promise;
+}
+
+#[ext_contract(ext_transfer)]
+trait ExtTransfer {
+    fn nft_transfer(
+        &mut self,
+        receiver_id: ValidAccountId,
+        token_id: TokenId,
+        enforce_owner_id: ValidAccountId,
+        memo: String,
+    );
 }

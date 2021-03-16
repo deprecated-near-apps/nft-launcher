@@ -17,7 +17,7 @@ mod nft_core;
 #[global_allocator]
 static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc::INIT;
 
-const ON_CREATE_ACCOUNT_CALLBACK_GAS: u64 = 20_000_000_000_000;
+const ON_CALLBACK_GAS: u64 = 20_000_000_000_000;
 const GAS_FOR_MARKET_CALL: Gas = 25_000_000_000_000;
 const NO_DEPOSIT: Balance = 0;
 const GUEST_STRING_LENGTH_LIMIT: usize = 256;
@@ -141,8 +141,7 @@ impl Contract {
         assert_eq!(&guest.account_id, &token.owner_id);
         assert_eq!(token.approved_account_ids.len(), 0, "Can only approve one market at a time as guest");
         let market_contract: AccountId = market_id.into();
-
-        // TODO should be handled in promise after market contract promise is successful
+        // removed if add_sale to market fails
         token.approved_account_ids.insert(market_contract.clone());
         self.tokens_by_id.insert(&token_id, &token);
         self.guest_sales.insert(&token_id, &GuestSale {
@@ -150,38 +149,47 @@ impl Contract {
             price: price.clone().into(),
             deposit: deposit.clone()
         });
-        // make the market add sale
+        // make market add sale
         ext_market::add_sale(
             env::current_account_id(),
-            token_id,
+            token_id.clone(),
             price,
             guest.account_id,
             &market_contract,
             deposit,
             GAS_FOR_MARKET_CALL
-        );
+        ).then(ext_self::on_market_updated(
+            true,
+            token_id,
+            market_contract,
+            &env::current_account_id(),
+            NO_DEPOSIT,
+            ON_CALLBACK_GAS,
+        ));
     }
 
     pub fn nft_remove_sale_guest(&mut self, token_id: TokenId, market_id: ValidAccountId) {
         let guest = self.admin_guest(0);
-        let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let token = self.tokens_by_id.get(&token_id).expect("Token not found");
         assert_eq!(&guest.account_id, &token.owner_id);
         let market_contract: AccountId = market_id.into();
         assert_eq!(token.approved_account_ids.len(), 1, "No sale at market {}", market_contract.clone());
         
-        // TODO should be handled in promise after market contract promise is successful
-        token.approved_account_ids.remove(&market_contract.clone());
-        self.tokens_by_id.insert(&token_id, &token);
-        self.guest_sales.remove(&token_id);
-
         // make market remove sale
         ext_market::remove_sale(
             env::current_account_id(),
-            token_id,
+            token_id.clone(),
             &market_contract,
             NO_DEPOSIT,
             GAS_FOR_MARKET_CALL
-        );
+        ).then(ext_self::on_market_updated(
+            false,
+            token_id,
+            market_contract,
+            &env::current_account_id(),
+            NO_DEPOSIT,
+            ON_CALLBACK_GAS,
+        ));
     }
 
     /// internal helpers for guest admin
@@ -223,29 +231,17 @@ impl Contract {
             )
             .transfer(balance - fees)
             .then(ext_self::on_account_created(
-                account_id,
                 pk,
-                
                 &env::current_account_id(),
                 NO_DEPOSIT,
-                ON_CREATE_ACCOUNT_CALLBACK_GAS,
+                ON_CALLBACK_GAS,
             ))
-    }
-
-    /// after the account is created we'll delete all the guests activity
-    pub fn on_account_created(&mut self, account_id: AccountId, public_key: PublicKey) -> bool {
-        let creation_succeeded = is_promise_success();
-        if creation_succeeded {
-            self.guests.remove(&public_key);
-        }
-        creation_succeeded
     }
 
     /// only owner/backend API should be able to do this to avoid unwanted storage usage in creating new guest records
 
     /// add account_id to guests for get_predecessor and to storage to receive tokens
     pub fn add_guest(&mut self, account_id: AccountId, public_key: Base58PublicKey) {
-
         assert_eq!(env::predecessor_account_id(), self.owner_id, "must be owner_id");
         
         if self.tokens_per_owner.get(&account_id).is_some() {
@@ -273,19 +269,43 @@ impl Contract {
     pub fn get_guest(&self, public_key: Base58PublicKey) -> Guest {
         self.guests.get(&public_key.into()).expect("no guest")
     }
-}
 
-/// external calls to marketplac
-#[ext_contract(ext_market)]
-trait ExtTransfer {
-    fn add_sale(&mut self, token_contract_id: AccountId, token_id: String, price: U128, on_behalf_of: AccountId);
-    fn remove_sale(&mut self, token_contract_id: AccountId, token_id: String);
+    /// self callbacks
+
+    /// after account creation delete all the guests activity
+    pub fn on_account_created(&mut self, public_key: PublicKey) -> bool {
+        let success = is_promise_success();
+        if success {
+            self.guests.remove(&public_key);
+        }
+        success
+    }
+
+    /// remove approval and guest_sale if there was a removal or if market promise failed to add sale
+    pub fn on_market_updated(&mut self, was_sale_added: bool, token_id: TokenId, market_contract: AccountId) -> bool {
+        let success = is_promise_success();
+        if !was_sale_added || !success {
+            let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+            token.approved_account_ids.remove(&market_contract);
+            self.tokens_by_id.insert(&token_id, &token);
+            self.guest_sales.remove(&token_id);
+        }
+        success
+    }
 }
 
 /// Callback for after upgrade_guest
 #[ext_contract(ext_self)]
 pub trait ExtContract {
-    fn on_account_created(&mut self, account_id: AccountId, public_key: PublicKey) -> bool;
+    fn on_account_created(&mut self, public_key: PublicKey) -> bool;
+    fn on_market_updated(&mut self, was_sale_added: bool, token_id: TokenId, market_contract: AccountId) -> bool;
+}
+
+/// external calls to marketplace
+#[ext_contract(ext_market)]
+trait ExtTransfer {
+    fn add_sale(&mut self, token_contract_id: AccountId, token_id: String, price: U128, on_behalf_of: AccountId);
+    fn remove_sale(&mut self, token_contract_id: AccountId, token_id: String);
 }
 
 fn is_promise_success() -> bool {
