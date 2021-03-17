@@ -22,6 +22,7 @@ pub struct Sale {
     pub beneficiary: AccountId,
     pub price: Balance,
     pub deposit: Balance,
+    pub processing: bool,
 }
 
 #[near_bindgen]
@@ -60,6 +61,7 @@ impl Contract {
             beneficiary: env::predecessor_account_id(),
             price: price.into(),
             deposit,
+            processing: false,
         });
     }
 
@@ -78,13 +80,17 @@ impl Contract {
     #[payable]
     pub fn purchase(&mut self, token_contract_id: ValidAccountId, token_id: String) -> Promise {
         let contract_id: AccountId = token_contract_id.clone().into();
-        let sale = self.sales.get(&format!("{}:{}", contract_id, token_id.clone())).expect("No sale");
+        let contract_and_token_id = format!("{}:{}", contract_id, token_id);
+        let mut sale = self.sales.get(&contract_and_token_id).expect("No sale");
+        assert_eq!(sale.processing, false, "Sale is currently in progress");
         let deposit = env::attached_deposit();
         assert_eq!(
             env::attached_deposit(),
             sale.price,
             "Must pay exactly the sale amount {}", deposit
         );
+        sale.processing = true;
+        self.sales.insert(&contract_and_token_id, &sale);
         let predecessor = env::predecessor_account_id();
         let receiver_id = ValidAccountId::try_from(predecessor.clone()).unwrap();
         let owner_id = ValidAccountId::try_from(sale.owner_id).unwrap();
@@ -115,15 +121,18 @@ impl Contract {
         buyer_id: AccountId,
     ) -> bool {
         env::log(format!("Promise Result {:?}", env::promise_result(0)).as_bytes());
+        let contract_and_token_id = format!("{}:{}", token_contract_id, token_id);
         // value is nothing, checking if nft_transfer was Successful promise execution
         if let PromiseResult::Successful(_value) = env::promise_result(0) {
             // pay seller and remove sale
-            let sale = self.sales.remove(&format!("{}:{}", token_contract_id, token_id)).expect("No sale");
+            let sale = self.sales.remove(&contract_and_token_id).expect("No sale");
             Promise::new(sale.beneficiary).transfer(sale.price + sale.deposit);
             return true;
         }
-        // no promise result, refund buyer
-        let sale = self.sales.get(&format!("{}:{}", token_contract_id, token_id)).expect("No sale");
+        // no promise result, refund buyer and update sale state to not processing
+        let mut sale = self.sales.get(&contract_and_token_id).expect("No sale");
+        sale.processing = false;
+        self.sales.insert(&contract_and_token_id, &sale);
         Promise::new(buyer_id).transfer(sale.price);
         return false;
     }

@@ -137,18 +137,15 @@ impl Contract {
         let deposit: Balance = market_deposit.into();
         assert!(deposit <= MAX_MARKET_DEPOSIT, "Cannot make market deposits more than {}", MAX_MARKET_DEPOSIT);
         let guest = self.admin_guest(0);
-        let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let token = self.tokens_by_id.get(&token_id).expect("Token not found");
         assert_eq!(&guest.account_id, &token.owner_id);
         assert_eq!(token.approved_account_ids.len(), 0, "Can only approve one market at a time as guest");
         let market_contract: AccountId = market_id.into();
-        // removed if add_sale to market fails
-        token.approved_account_ids.insert(market_contract.clone());
-        self.tokens_by_id.insert(&token_id, &token);
-        self.guest_sales.insert(&token_id, &GuestSale {
+        let sale = GuestSale {
             public_key: env::signer_account_pk(),
             price: price.clone().into(),
             deposit: deposit.clone()
-        });
+        };
         // make market add sale
         ext_market::add_sale(
             env::current_account_id(),
@@ -159,9 +156,9 @@ impl Contract {
             deposit,
             GAS_FOR_MARKET_CALL
         ).then(ext_self::on_market_updated(
-            true,
             token_id,
             market_contract,
+            Some(sale),
             &env::current_account_id(),
             NO_DEPOSIT,
             ON_CALLBACK_GAS,
@@ -174,7 +171,6 @@ impl Contract {
         assert_eq!(&guest.account_id, &token.owner_id);
         let market_contract: AccountId = market_id.into();
         assert_eq!(token.approved_account_ids.len(), 1, "No sale at market {}", market_contract.clone());
-        
         // make market remove sale
         ext_market::remove_sale(
             env::current_account_id(),
@@ -183,9 +179,9 @@ impl Contract {
             NO_DEPOSIT,
             GAS_FOR_MARKET_CALL
         ).then(ext_self::on_market_updated(
-            false,
             token_id,
             market_contract,
+            None,
             &env::current_account_id(),
             NO_DEPOSIT,
             ON_CALLBACK_GAS,
@@ -282,9 +278,17 @@ impl Contract {
     }
 
     /// remove approval and guest_sale if there was a removal or if market promise failed to add sale
-    pub fn on_market_updated(&mut self, was_sale_added: bool, token_id: TokenId, market_contract: AccountId) -> bool {
+    pub fn on_market_updated(&mut self, token_id: TokenId, market_contract: AccountId, sale: Option<GuestSale>) -> bool {
         let success = is_promise_success();
-        if !was_sale_added || !success {
+        if let Some(sale) = sale {
+            if !success {
+                return success;
+            }
+            let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+            token.approved_account_ids.insert(market_contract);
+            self.tokens_by_id.insert(&token_id, &token);
+            self.guest_sales.insert(&token_id, &sale);
+        } else {
             let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
             token.approved_account_ids.remove(&market_contract);
             self.tokens_by_id.insert(&token_id, &token);
@@ -298,7 +302,7 @@ impl Contract {
 #[ext_contract(ext_self)]
 pub trait ExtContract {
     fn on_account_created(&mut self, public_key: PublicKey) -> bool;
-    fn on_market_updated(&mut self, was_sale_added: bool, token_id: TokenId, market_contract: AccountId) -> bool;
+    fn on_market_updated(&mut self, token_id: TokenId, market_contract: AccountId, sale: Option<GuestSale>) -> bool;
 }
 
 /// external calls to marketplace
