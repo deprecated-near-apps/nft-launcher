@@ -247,6 +247,10 @@ impl Contract {
         if self.tokens_per_owner.get(&account_id).is_some() {
             env::panic(b"The account is already registered");
         }
+
+        let mut tokens_set = UnorderedSet::new(unique_prefix(&account_id));
+        self.tokens_per_owner.insert(&account_id, &tokens_set);
+        
         if self.guests.insert(&public_key.into(), &Guest{
             account_id,
             mints: 0,
@@ -268,6 +272,10 @@ impl Contract {
 
     pub fn get_guest(&self, public_key: Base58PublicKey) -> Guest {
         self.guests.get(&public_key.into()).expect("no guest")
+    }
+
+    pub fn get_account(&self, account_id: ValidAccountId) -> Vec<TokenId> {
+        self.tokens_per_owner.get(&account_id.into()).expect("no account").to_vec()
     }
 
     pub fn get_token_ids(&self) -> Vec<TokenId> {

@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import * as nearAPI from 'near-api-js';
 import { GAS, parseNearAmount } from '../state/near';
-import { parseSeedPhrase } from 'near-seed-phrase';
 import { 
     contractName,
     createGuestAccount,
@@ -22,9 +21,7 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
     
 	const checkFreebies = async () => {
         if (!localKeys.accessPublic) return
-		const { secretKey } = parseSeedPhrase(localKeys.seedPhrase);
-		const keyPair = KeyPair.fromString(secretKey);
-		const guestAccount = createGuestAccount(near, keyPair);
+		const guestAccount = createGuestAccount(near, KeyPair.fromString(localKeys.accessSecret));
         const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: localKeys.accessPublic })
 		setFreebies(guest.mints + 1);
 	};
@@ -39,7 +36,7 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
 		let appAccount = account;
 		let accountId, deposit;
 		if (!appAccount) {
-			appAccount = createAccessKeyAccount(near, KeyPair.fromString(localKeys.accessSecret));
+			appAccount = createGuestAccount(near, KeyPair.fromString(localKeys.accessSecret));
 			accountId = localKeys.accessAccountId;
 		} else {
 			accountId = account.accountId;
@@ -47,9 +44,9 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
 		}
         
 		const contract = getContract(appAccount);
-		await contract[!account ? 'guest_mint' : 'mint_token']({
+		await contract[!account ? 'nft_mint_guest' : 'nft_mint']({
+            token_id: 'token-' + Date.now(),
 			metadata,
-			owner_id: accountId
 		}, GAS, deposit);
 		checkFreebies();
 		update('loading', false);

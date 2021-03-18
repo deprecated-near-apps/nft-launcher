@@ -5,7 +5,8 @@ export const {
 	GAS,
 	networkId, nodeUrl, walletUrl, nameSuffix,
 	contractName, contractMethods,
-	accessKeyMethods
+	accessKeyMethods,
+    marketId, marketDeposit,
 } = getConfig();
 
 const {

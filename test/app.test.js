@@ -47,7 +47,6 @@ describe('deploy contract ' + contractName, () => {
 		// /// normal user alice
 		alice = await getAccount();
 		console.log('\n\nAlice accountId:', alice.accountId, '\n\n');
-
 		/// create guest account for bob
         /// add key to guests account (pays for gas, manages guest keys)
         /// add guest record to contract
@@ -88,7 +87,6 @@ describe('deploy contract ' + contractName, () => {
         const token_id = tokenIds[0]
 		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata }, GAS, parseNearAmount('1'));
         const token = await contract.nft_token({ token_id });
-		// console.log('\n\n', token, '\n\n');
         expect(token.metadata).toEqual(metadata)
         expect(token.owner_id).toEqual(alice.accountId)
 	});

@@ -42,19 +42,27 @@ export const Keys = ({ near, update, localKeys }) => {
 		const { secretKey } = parseSeedPhrase(seedPhrase);
 		const keyPair = KeyPair.fromString(secretKey);
 		const guestAccount = createGuestAccount(near, keyPair);
-        const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: accessPublic })
-        console.log(guest)
+        try {
+            const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: accessPublic })
+            console.log(guest)
+        } catch (e) {
+            console.warn(e)
+        }
         
 		update('localKeys', { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn });
 	};
 
 	const handleCreateGuest = async () => {
-		if (localKeys) {
+        if (localKeys && window.confirm('Sign in as: ' + localKeys.accessAccountId + ' or CANCEL to sign in with a new username. WARNING you will lose access to the account: ' + localKeys.accessAccountId)) {
 			return signIn();
 		}
         const account_id = username + '.' + contractName
-        if (await isAccountTaken(near, account_id)) {
-            return alert('username is taken')
+        const contractAccount = new Account(near.connection, contractName)
+        try {
+            await contractAccount.viewFunction(contractName, 'get_account', { account_id })
+            return alert('username taken')
+        } catch (e) {
+            console.warn(e)
         }
 		update('loading', true);
 		const { seedPhrase, publicKey, secretKey } = generateSeedPhrase();
@@ -68,20 +76,21 @@ export const Keys = ({ near, update, localKeys }) => {
             }
 		});
 		if (result && result.success) {
-            const contractAccount = new Account(near.connection, contractName)
-			const guest = await contractAccount.viewFunction(contractName, 'get_guest', { public_key })
-            console.log(guest)
-			if (guest) {
-				const keys = {
+			try {
+                await contractAccount.viewFunction(contractName, 'get_account', { account_id })
+                const keys = {
 					seedPhrase,
-					accessAccountId: Buffer.from(PublicKey.from(publicKey).data).toString('hex'),
+                    accessAccountId: account_id,
 					accessPublic: publicKey.toString(),
 					accessSecret: secretKey,
 					signedIn: true,
 				};
 				update('localKeys', keys);
 				set(LOCAL_KEYS, keys);
-			}
+            } catch (e) {
+                update('loading', false);
+                return alert('error creating guest account')
+            }
 		}
 		update('loading', false);
 		return null;
@@ -114,15 +123,8 @@ export const Keys = ({ near, update, localKeys }) => {
 		update('loading', false);
 	};
 
-	const deleteAccessKeys = async () => {
-		update('loading', true);
-		// WARNING NO RESTRICTION ON THIS ENDPOINT
-		const result = await fetch('http://localhost:3000/delete-access-keys').then((res) => res.json());
-		if (result && result.success) {
-			update('localKeys', null);
-			del(LOCAL_KEYS);
-		}
-		update('loading', false);
+	const deleteAccessKeys = window.deleteUsers = async () => {
+		del(LOCAL_KEYS);
 	};
 
 	return <>

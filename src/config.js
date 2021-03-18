@@ -1,4 +1,4 @@
-const contractName = 'dev-1616019775998-6374460';
+const contractName = 'dev-1616042284278-2021983';
 
 module.exports = function getConfig() {
 	let config = {
@@ -24,6 +24,8 @@ module.exports = function getConfig() {
                 ],
 				viewMethods: ['get_guest', 'get_token_ids', 'nft_token', 'get_sale'],
 			},
+            marketDeposit: '100000000000000000000000',
+            marketId: 'market.' + contractName
 		};
 	}
     
