@@ -20,7 +20,7 @@ pub type ContractAndTokenId = String;
 pub struct Sale {
     pub owner_id: AccountId,
     pub beneficiary: AccountId,
-    pub price: Balance,
+    pub price: U128,
     pub deposit: Balance,
     pub processing: bool,
 }
@@ -59,7 +59,7 @@ impl Contract {
         self.sales.insert(&format!("{}:{}", contract_id, token_id), &Sale{
             owner_id,
             beneficiary: env::predecessor_account_id(),
-            price: price.into(),
+            price,
             deposit,
             processing: false,
         });
@@ -84,9 +84,10 @@ impl Contract {
         let mut sale = self.sales.get(&contract_and_token_id).expect("No sale");
         assert_eq!(sale.processing, false, "Sale is currently in progress");
         let deposit = env::attached_deposit();
+        let price = sale.price.into();
         assert_eq!(
             env::attached_deposit(),
-            sale.price,
+            price,
             "Must pay exactly the sale amount {}", deposit
         );
         sale.processing = true;
@@ -126,14 +127,14 @@ impl Contract {
         if let PromiseResult::Successful(_value) = env::promise_result(0) {
             // pay seller and remove sale
             let sale = self.sales.remove(&contract_and_token_id).expect("No sale");
-            Promise::new(sale.beneficiary).transfer(sale.price + sale.deposit);
+            Promise::new(sale.beneficiary).transfer(u128::from(sale.price) + sale.deposit);
             return true;
         }
         // no promise result, refund buyer and update sale state to not processing
         let mut sale = self.sales.get(&contract_and_token_id).expect("No sale");
         sale.processing = false;
         self.sales.insert(&contract_and_token_id, &sale);
-        Promise::new(buyer_id).transfer(sale.price);
+        Promise::new(buyer_id).transfer(u128::from(sale.price));
         return false;
     }
 

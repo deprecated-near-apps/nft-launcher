@@ -1,7 +1,10 @@
 import React, {useEffect, useState} from 'react';
 import * as nearAPI from 'near-api-js';
 import { GAS, parseNearAmount } from '../state/near';
+import { parseSeedPhrase } from 'near-seed-phrase';
 import { 
+    contractName,
+    createGuestAccount,
 	accessKeyMethods,
 	createAccessKeyAccount,
 	getContract,
@@ -18,13 +21,12 @@ export const Contract = ({ near, update, localKeys = {}, account }) => {
 	const [freebies, setFreebies] = useState(0);
     
 	const checkFreebies = async () => {
-		let appAccount = account;
-		if (appAccount) return;
-		appAccount = createAccessKeyAccount(near, KeyPair.fromString(localKeys.accessSecret));
-		const contract = getContract(appAccount, accessKeyMethods);
-		setFreebies(await contract.get_pubkey_minted({
-			pubkey: localKeys.accessPublic
-		}) + 1);
+        if (!localKeys.accessPublic) return
+		const { secretKey } = parseSeedPhrase(localKeys.seedPhrase);
+		const keyPair = KeyPair.fromString(secretKey);
+		const guestAccount = createGuestAccount(near, keyPair);
+        const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: localKeys.accessPublic })
+		setFreebies(guest.mints + 1);
 	};
 	useEffect(checkFreebies, []);
 

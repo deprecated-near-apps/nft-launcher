@@ -24,7 +24,8 @@ describe('deploy contract ' + contractName, () => {
     let alice, bobId, bob, bobKey, marketAccount;
 
     const market_deposit = parseNearAmount('0.1');
-    const metadata = 'hello world!'
+    const metadata = 'https://media1.tenor.com/images/4c1d96a989150e7019bfbabbebd2ff36/tenor.gif?itemid=20269144'
+    const metadata2 = 'https://media1.tenor.com/images/818161c07948bac34aa7c5f5712ec3d7/tenor.gif?itemid=15065455'
 
     const tokenIds = [
         'token' + Date.now(),
@@ -97,6 +98,18 @@ describe('deploy contract ' + contractName, () => {
 		await alice.functionCall(contractId, 'nft_transfer', { token_id, receiver_id: bobId }, GAS, 1);
         const token = await contract.nft_token({ token_id });
         expect(token.owner_id).toEqual(bobId)
+	});
+
+    test('nft mint and approve but no sale', async () => {
+        const token_id = tokenIds[2]
+		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata: metadata2 }, GAS, parseNearAmount('1'));
+        await alice.functionCall(contractId, 'nft_approve_account_id', { token_id, account_id: marketId }, GAS, parseNearAmount('0.1'));
+        await alice.functionCall(marketId, 'add_sale', { token_contract_id: contractId, token_id, price: parseNearAmount('1') }, GAS, parseNearAmount('0.1'));
+        const token = await contract.nft_token({ token_id });
+        const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
+		console.log('\n\n', sale, '\n\n');
+        expect(sale.price).toEqual(parseNearAmount('1'))
+        expect(token.owner_id).toEqual(alice.accountId)
 	});
 
 	test('nft mint guest', async () => {

@@ -1,4 +1,4 @@
-const contractName = 'dev-1615997033735-9582670';
+const contractName = 'dev-1616019775998-6374460';
 
 module.exports = function getConfig() {
 	let config = {
@@ -19,9 +19,10 @@ module.exports = function getConfig() {
 			contractMethods: {
 				changeMethods: [
                     'new', 'nft_mint', 'nft_transfer', 'add_guest', 'remove_guest',
+                    'nft_approve_account_id',
                     'nft_mint_guest', 'nft_add_sale_guest', 'nft_remove_sale_guest', 'upgrade_guest'
                 ],
-				viewMethods: ['get_guest', 'nft_token'],
+				viewMethods: ['get_guest', 'get_token_ids', 'nft_token', 'get_sale'],
 			},
 		};
 	}

@@ -17,6 +17,7 @@ impl Contract {
         );
         self.internal_add_token_to_owner(&token.owner_id, &token_id);
         self.total_supply += 1;
+        self.token_ids.push(token_id);
 
         let new_token_size_in_bytes = env::storage_usage() - initial_storage_usage;
         let required_storage_in_bytes =

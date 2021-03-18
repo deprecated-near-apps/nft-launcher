@@ -66,9 +66,11 @@ pub struct Contract {
     /// The storage size in bytes for one account.
     pub extra_storage_in_bytes_per_token: StorageUsage,
 
-    /// custom fields for example
+    /// custom fields for guests and example app (with no backend need to store list of tokens)
     pub guests: LookupMap<PublicKey, Guest>,
     pub guest_sales: LookupMap<TokenId, GuestSale>,
+    /// this is lazy, could also store list of owners and query tokens_per_owner for each owner
+    pub token_ids: Vec<TokenId>,
 }
 
 #[near_bindgen]
@@ -82,6 +84,7 @@ impl Contract {
             guests: LookupMap::new(b"g".to_vec()),
             guest_sales: LookupMap::new(b"m".to_vec()),
             owner_id: owner_id.into(),
+            token_ids: Vec::new(),
             total_supply: 0,
             extra_storage_in_bytes_per_token: 0,
         };
@@ -131,6 +134,7 @@ impl Contract {
         );
         self.internal_add_token_to_owner(&token.owner_id, &token_id);
         self.total_supply += 1;
+        self.token_ids.push(token_id);
     }
 
     pub fn nft_add_sale_guest(&mut self, token_id: TokenId, price: U128, market_id: ValidAccountId, market_deposit: U128) {
@@ -264,6 +268,10 @@ impl Contract {
 
     pub fn get_guest(&self, public_key: Base58PublicKey) -> Guest {
         self.guests.get(&public_key.into()).expect("no guest")
+    }
+
+    pub fn get_token_ids(&self) -> Vec<TokenId> {
+        self.token_ids.clone()
     }
 
     /// self callbacks

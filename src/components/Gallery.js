@@ -29,15 +29,27 @@ export const Gallery = ({ near, signedIn, contractAccount, account, localKeys, l
 	const loadItems = async () => {
 		setFetching(true);
 		const contract = getContract(contractAccount);
-		const num_tokens = await contract.get_num_tokens();
+		const token_ids = await contract.get_token_ids();
+        console.log(token_ids)
 		const newItems = [];
-		for (let i = 1; i <= num_tokens; i++) {
-			const data = await contract.get_token_data({
-				token_id: i
+		for (let i = 0; i < token_ids.length; i++) {
+            const token_id = token_ids[i]
+			const data = await contract.nft_token({
+				token_id
 			});
+            data.sales = []
+            for (let j = 0; j < data.approved_account_ids.length; j++) {
+                const marketId = data.approved_account_ids[j]
+                /// gotta get sale from marketplace contract
+                const sale = await contractAccount.viewFunction(marketId, 'get_sale', {
+                    token_contract_id: contractAccount.accountId,
+                    token_id
+                });
+                data.sales.push(sale)
+            }
 			newItems.push({
 				...data,
-				token_id: i
+				token_id
 			});
 		}
 		newItems.reverse();
@@ -99,17 +111,19 @@ export const Gallery = ({ near, signedIn, contractAccount, account, localKeys, l
 			<button onClick={() => setFilter(2)} style={{ background: filter === 2 ? '#FFB259' : ''}}>My Tokens</button>
 		</div>}
 		{
-			(filter === 1 ? market : mine).map(({ metadata, owner_id, price, token_id }) => <div key={token_id} className="item">
+			(filter === 1 ? market : mine).map(({ metadata, owner_id, sales, token_id }) => <div key={token_id} className="item">
 				<img src={metadata} />
 				{(filter === 1 || price !== '0') &&<div className="line"></div>}
 				{filter === 1 && <p>Owned by {formatAccountId(owner_id)}</p>}
 				{
-					price !== '0' && <>
-						<p>Price {formatNearAmount(price, 2)}</p>
-						{
-							account && <button onClick={() => handlePurchase(token_id)}>Purchase</button>
-						}
-					</>
+					sales.map(({ price }, i) =>
+                        <div key={i}>
+                            <p>Price {formatNearAmount(price, 2)}</p>
+                            {
+                                account && <button onClick={() => handlePurchase(token_id)}>Purchase</button>
+                            }
+                        </div>
+                    ) 
 				}
 				{filter === 2 && <>
 					<input placeholder="Price (N)" value={amount} onChange={(e) => setAmount(e.target.value)} />

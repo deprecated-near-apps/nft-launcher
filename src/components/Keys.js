@@ -7,7 +7,9 @@ import {
 	getContract,
 	contractName,
 	createAccessKeyAccount,
+    createGuestAccount,
 	postJson,
+    isAccountTaken,
 	postSignedJson,
 	GAS
 } from '../utils/near-utils';
@@ -15,6 +17,7 @@ import {
 const LOCAL_KEYS = '__LOCAL_KEYS';
 
 const {
+    Account,
 	KeyPair,
 	utils: { PublicKey,
 		format: {
@@ -25,6 +28,7 @@ const {
 export const Keys = ({ near, update, localKeys }) => {
 	if (!near.connection) return null;
     
+	const [username, setUsername] = useState('');
 	const [accountId, setAccountId] = useState('');
 
 	useEffect(() => {
@@ -32,33 +36,42 @@ export const Keys = ({ near, update, localKeys }) => {
 	}, []);
 
 	const loadKeys = async () => {
+        console.log(loadKeys)
 		const { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn } = get(LOCAL_KEYS);
 		if (!accessAccountId) return;
 		const { secretKey } = parseSeedPhrase(seedPhrase);
 		const keyPair = KeyPair.fromString(secretKey);
-		const account = createAccessKeyAccount(near, keyPair);
-		const contract = getContract(account, accessKeyMethods);
-		const proceeds = formatNearAmount(await contract.get_proceeds({ owner_id: accessAccountId }), 2);
-		update('localKeys', { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn, proceeds });
+		const guestAccount = createGuestAccount(near, keyPair);
+        const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: accessPublic })
+        console.log(guest)
+        
+		update('localKeys', { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn });
 	};
 
-	const getNewAccessKey = async () => {
-
+	const handleCreateGuest = async () => {
 		if (localKeys) {
 			return signIn();
 		}
-
+        const account_id = username + '.' + contractName
+        if (await isAccountTaken(near, account_id)) {
+            return alert('username is taken')
+        }
 		update('loading', true);
 		const { seedPhrase, publicKey, secretKey } = generateSeedPhrase();
-		const keyPair = KeyPair.fromString(secretKey);
+        let public_key = publicKey.toString()
 		// WARNING NO RESTRICTION ON THIS ENDPOINT
 		const result = await postJson({
-			url: 'http://localhost:3000/add-key',
-			data: { publicKey: publicKey.toString() }
+			url: 'http://localhost:3000/add-guest',
+			data: { 
+                account_id,
+                public_key
+            }
 		});
 		if (result && result.success) {
-			const isValid = await checkAccessKey(keyPair);
-			if (isValid) {
+            const contractAccount = new Account(near.connection, contractName)
+			const guest = await contractAccount.viewFunction(contractName, 'get_guest', { public_key })
+            console.log(guest)
+			if (guest) {
 				const keys = {
 					seedPhrase,
 					accessAccountId: Buffer.from(PublicKey.from(publicKey).data).toString('hex'),
@@ -72,16 +85,6 @@ export const Keys = ({ near, update, localKeys }) => {
 		}
 		update('loading', false);
 		return null;
-	};
-
-	const checkAccessKey = async (key) => {
-		const account = createAccessKeyAccount(near, key);
-		const result = await postSignedJson({
-			url: 'http://localhost:3000/has-access-key',
-			contractName,
-			account
-		});
-		return result && result.success;
 	};
 
 	const signIn = () => {
@@ -135,7 +138,12 @@ export const Keys = ({ near, update, localKeys }) => {
 				<br />
 				<button onClick={() => signOut()}>Sign Out</button>
 			</> :
-			<button onClick={() => getNewAccessKey()}>Sign In As Guest</button>
+
+            <div>
+            <input placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} /> 
+            <br />
+			<button onClick={() => handleCreateGuest()}>Create Guest Account</button>
+            </div>
 		}
 		{/* <button onClick={() => deleteAccessKeys()}>DELETE ALL ACCESS KEY ACCOUNTS</button> */}
 	</>;
