@@ -27,13 +27,13 @@ Install Rust https://rustup.rs/
 - If you change the dev account (yarn test:deploy) the server should restart automatically, but you may need to restart the app and sign out/in again with NEAR Wallet.
 ### Moar Context
 
-There's 3 main areas to explore and learn from:
-- frontend only (use the app, sign in with NEAR wallet, deploy token contract, sign in as guest users, claim drops, transfer tokens, upgrade) as shown in the video
+There's 3 main areas to explore:
+- frontend app - shows how to create guest accounts that are added to the app contract via the nodejs server. Guests can mind NFTs, put them up for sale and earn NEAR tokens. When the guest has NEAR they can upgrade their account to a full account.
 - app.test.js (demos frontend only tests)
-- server.test.js (demos the server api, run server in background, and you can deploy token, add guests and transfer tokens via API calls vs. frontend)
+
 ### Owner Account, Token Account, etc...
 
-The tests are set up to auto generate the dev account each time you run `test:deploy` and the token account each time you run any test. **e.g. you will get a new token address each time you run a test**.
+The tests are set up to auto generate the dev account each time you run `test:deploy` **e.g. you will get a new NFT contract address each time you run a test**.
 
 This is just for testing. You can obviously deploy a token to a fixed address on testnet / mainnet, it's an easy config update.
 
@@ -47,14 +47,14 @@ Then, following the server tests, the guest transfers tokens to alice (who is a 
 
 Finally, the guest upgrades themselves to a real NEAR account, something demoed in the video.
 
-It's a lot to digest but if you focus on the `/test/app.test.js` and `/test/server.test.js` you will start to see the patterns.
+It's a lot to digest but if you focus on the `/test/app.test.js` you will start to see the patterns.
 # Background
 
-One of the issues with Social Tokens is that they start with zero value. A creator, artist or community might want to drop a bunch of tokens to their fans but the audience has (1) no crypto to pay for fees (2) no wallet (3) no concept of crypto or blockchain; prior to the drop. 
+One of the issues with onboarding new users to crypto is that they need to have crypto to do anything e.g. mint an NFT. A creator, artist or community might want to drop a bunch of free minting options to their fans for them to mint user generated content, but the audience has (1) no crypto to pay for fees (2) no wallet (3) no concept of crypto or blockchain; prior to the drop. 
 
-So let's solve these issues by dropping tokens to users in the traditional Web2 way!
+So let's solve these issues by allowing users to generate content the traditional Web2 way!
 
-We do a demo of creating a "guest" named account for an app where the gas fees are sponsored by a special app account called "guests.APP_NAME.near". The guest account doesn't exist (sometimes called a virtual or contract account) until the user decides to swap their tokens and upgrade to a real account. Until then their name is reserved because only the app is able to create "USERNAME.APP_NAME.near".
+We do a demo of creating a "guest" named account for an app where the gas fees are sponsored by a special app account called "guests.APP_NAME.near". The guest account doesn't exist (sometimes called a virtual or contract account) until the user creates and sells and NFT that generates some NEAR tokens and then they can upgrade to a real account. Until then their name is reserved because only the app is able to create "USERNAME.APP_NAME.near".
 
 This has many advantages for user onboarding, where users can use the app immediately and later can be upgraded to a full account. The users also don't have to move any assets - namely the fungible tokens they earned as a guest user. 
 
