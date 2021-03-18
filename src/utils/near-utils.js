@@ -15,6 +15,13 @@ const {
 	InMemorySigner,
 } = nearAPI;
 
+let near
+
+export const setSignerFromSeed = async (accountId, seedPhrase) => {
+    const { secretKey } = parseSeedPhrase(seedPhrase);
+    const keyPair = KeyPair.fromString(secretKey);
+    near.connection.signer.keyStore.setKey(networkId, accountId, keyPair);
+}
 export function formatAccountId (accountId, len = 16) {
 	if (accountId.length > len) {
 		return accountId.substr(0, len - 3) + '...';
@@ -27,7 +34,7 @@ export function getContract(account, methods = contractMethods) {
 }
 
 export const getWallet = async () => {
-	const near = await nearAPI.connect({
+	near = await nearAPI.connect({
 		networkId, nodeUrl, walletUrl, deps: { keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() },
 	});
 	const wallet = new nearAPI.WalletAccount(near);

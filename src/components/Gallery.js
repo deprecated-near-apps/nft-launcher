@@ -88,10 +88,14 @@ export const Gallery = ({ near, signedIn, contractAccount, account, localKeys, l
 		update('loading', true);
 		if (!account) {
 			const guestAccount = createGuestAccount(near, KeyPair.fromString(localKeys.accessSecret));
-            await guestAccount.functionCall(contractName, 'nft_remove_sale_guest', {
-                token_id,
-                market_id: marketId,
-            }, GAS)
+            try {
+                await guestAccount.functionCall(contractName, 'nft_remove_sale_guest', {
+                    token_id,
+                    market_id: marketId,
+                }, GAS)
+            } catch(e) {
+                console.warn(e)
+            }
             await guestAccount.functionCall(contractName, 'nft_add_sale_guest', {
                 token_id,
                 price: parseNearAmount(amount),

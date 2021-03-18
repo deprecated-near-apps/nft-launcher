@@ -1,21 +1,62 @@
-# TBD
+# NFT Launcher & Easy User Onboarding
 
-This repo is a companion to this video (so far):
+Associated Video Demos (most recent at top)
 
-
+[![NEAR Protocol - NFT Launcher & Easy User Onboarding Demo - Hackathon Starter Kit!](https://img.youtube.com/vi/59Lzt1PFF6I/0.jpg)](https://www.youtube.com/watch?v=59Lzt1PFF6I)
 
 [![Live App Review 14 - NFT Launcher Contract and Tests (Part 1)](https://img.youtube.com/vi/AtAa8hMRueY/0.jpg)](https://youtu.be/AtAa8hMRueY)
 
 
-# WIP Notes
+# Quickstart
 
-In Progress Details:
-- ✔️ NFT Contract
-- ✔️ Guest Accounts
-- ✔️ App Tests
-- ❌ Server side for adding guests & tests (WIP)
-- ❌ Frontend Demo (WIP)
+#### If you don't have Rust
+Install Rust https://rustup.rs/
+#### If you have never used near-cli
+1. Install near-cli: `npm i -g near-cli`
+2. Create testnet account: [Wallet](https://wallet.testnet.near.org)
+3. Login: `near login`
+#### Installing and Running Tests for this Example
+1. Install everything: `yarn && (cd server && yarn)`
+2. Deploy the contract and run the app tests: `yarn test:deploy`
+3. (WIP) Start server and run server tests: `cd server && yarn start` then in another terminal from the root `yarn test:server`
 
+#### Notes
+- If you ONLY change the JS tests use `yarn test`.
+- If you change the contract run `yarn test:deploy` again.
+- If you run out of funds in the dev account run `yarn test:deploy` again.
+- If you change the dev account (yarn test:deploy) the server should restart automatically, but you may need to restart the app and sign out/in again with NEAR Wallet.
+### Moar Context
+
+There's 3 main areas to explore and learn from:
+- frontend only (use the app, sign in with NEAR wallet, deploy token contract, sign in as guest users, claim drops, transfer tokens, upgrade) as shown in the video
+- app.test.js (demos frontend only tests)
+- server.test.js (demos the server api, run server in background, and you can deploy token, add guests and transfer tokens via API calls vs. frontend)
+### Owner Account, Token Account, etc...
+
+The tests are set up to auto generate the dev account each time you run `test:deploy` and the token account each time you run any test. **e.g. you will get a new token address each time you run a test**.
+
+This is just for testing. You can obviously deploy a token to a fixed address on testnet / mainnet, it's an easy config update.
+
+#### Guests Account (key and tx gas sponsorship)
+When you run app / server tests. There's a contract deployed and a special account created `guests.OWNER_ACCOUNT_ID` to manage the sponsored users (the ones you will pay for gas fees while onboarding). This special "guests" account is different from the test guest account `bob.TOKEN_ID.OWNER_ACCOUNT_ID`. It is an account, different from the owner or token accounts, that manages the guests keys.
+
+#### Guest Accounts
+The guest users can `claim_drop, ft_transfer_guest` and receive tokens from other users, e.g. in the server tests the owner transfers tokens to the guest account via API call and using client side code.
+
+Then, following the server tests, the guest transfers tokens to alice (who is a real NEAR account e.g. she pays her own gas).
+
+Finally, the guest upgrades themselves to a real NEAR account, something demoed in the video.
+
+It's a lot to digest but if you focus on the `/test/app.test.js` and `/test/server.test.js` you will start to see the patterns.
+# Background
+
+One of the issues with Social Tokens is that they start with zero value. A creator, artist or community might want to drop a bunch of tokens to their fans but the audience has (1) no crypto to pay for fees (2) no wallet (3) no concept of crypto or blockchain; prior to the drop. 
+
+So let's solve these issues by dropping tokens to users in the traditional Web2 way!
+
+We do a demo of creating a "guest" named account for an app where the gas fees are sponsored by a special app account called "guests.APP_NAME.near". The guest account doesn't exist (sometimes called a virtual or contract account) until the user decides to swap their tokens and upgrade to a real account. Until then their name is reserved because only the app is able to create "USERNAME.APP_NAME.near".
+
+This has many advantages for user onboarding, where users can use the app immediately and later can be upgraded to a full account. The users also don't have to move any assets - namely the fungible tokens they earned as a guest user. 
 
 ## Installation
 

@@ -3,14 +3,11 @@ import * as nearAPI from 'near-api-js';
 import { get, set, del } from '../utils/storage';
 import { generateSeedPhrase, parseSeedPhrase } from 'near-seed-phrase';
 import {
-	accessKeyMethods,
-	getContract,
+    setSignerFromSeed,
 	contractName,
-	createAccessKeyAccount,
     createGuestAccount,
 	postJson,
-    isAccountTaken,
-	postSignedJson,
+    networkId,
 	GAS
 } from '../utils/near-utils';
 
@@ -42,14 +39,15 @@ export const Keys = ({ near, update, localKeys }) => {
 		const { secretKey } = parseSeedPhrase(seedPhrase);
 		const keyPair = KeyPair.fromString(secretKey);
 		const guestAccount = createGuestAccount(near, keyPair);
+        let guest
         try {
-            const guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: accessPublic })
+            guest = await guestAccount.viewFunction(contractName, 'get_guest', { public_key: accessPublic })
             console.log(guest)
         } catch (e) {
             console.warn(e)
         }
         
-		update('localKeys', { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn });
+		update('localKeys', { seedPhrase, accessAccountId, accessPublic, accessSecret, signedIn, balance: guest.balance });
 	};
 
 	const handleCreateGuest = async () => {
@@ -108,20 +106,45 @@ export const Keys = ({ near, update, localKeys }) => {
 		set(LOCAL_KEYS, localKeys);
 	};
 
-	const handleFundAccount = async() => {
-		if (!accountId.length) return alert('Please enter an accountId to fund!');
-		update('loading', true);
-		const { secretKey } = parseSeedPhrase(localKeys.seedPhrase);
-		const keyPair = KeyPair.fromString(secretKey);
-		const account = createAccessKeyAccount(near, keyPair);
-		const contract = getContract(account, accessKeyMethods);
-		await contract.withdraw({
-			account_id: localKeys.accessAccountId,
-			beneficiary: accountId,
-		}, GAS);
-		loadKeys();
-		update('loading', false);
-	};
+    const handleUpgrade = async () => {
+        /// the new full access key
+        const { seedPhrase, publicKey } = generateSeedPhrase();
+        if (!window.prompt('Keep this somewhere safe!', seedPhrase)) {
+            return alert('you have to copy the seed phrase down somewhere')
+        }
+        console.log('seedPhrase', seedPhrase)
+        /// additional access key so upgraded user doens't have to sign in with wallet
+        const { seedPhrase: accessSeed, secretKey: accessSecret, publicKey: accessPublic } = generateSeedPhrase();
+
+        /// current guest credentials
+        const { accessAccountId: accountId, seedPhrase: guestSeed } = localKeys
+        /// prep contract and args
+        const guestAccount = createGuestAccount(near, KeyPair.fromString(localKeys.accessSecret));
+        update('loading', true);
+        const public_key = publicKey.toString();
+        try {
+            await guestAccount.functionCall(contractName, 'upgrade_guest', {
+                public_key,
+                access_key: accessPublic,
+                method_names: ''
+            }, GAS);
+
+            /// wallet hijacking
+            set(`near-api-js:keystore:${accountId}:default`, accessSecret);
+            set(`undefined_wallet_auth_key`, `{"accountId":"${accountId}","allKeys":["${accessPublic}"]}`);
+            /// set to access key pair, still a guest 
+            /// e.g. don't have to get full access key secret from app (can use wallet /extention)
+            const accessKeyPair = KeyPair.fromString(accessSecret)
+            near.connection.signer.keyStore.setKey(networkId, accountId, accessKeyPair);
+            signOut()
+            update('loading', false);
+            /// because we hacked the wallet
+            window.location.reload();
+        } catch (e) {
+            console.warn(e);
+            alert('upgrading failed')
+        }
+    };
 
 	const deleteAccessKeys = window.deleteUsers = async () => {
 		del(LOCAL_KEYS);
@@ -130,11 +153,10 @@ export const Keys = ({ near, update, localKeys }) => {
 	return <>
 		{ localKeys && localKeys.signedIn ?
 			<>
-				<p>Balance: {localKeys.proceeds || '0'} N</p>
+				<p>Balance: {formatNearAmount(localKeys.balance, 2) || '0'} N</p>
 				{
-					localKeys.proceeds && localKeys.proceeds !== '0' && <>
-						<input placeholder="Funding AccountId" value={accountId} onChange={(e) => setAccountId(e.target.value)} />
-						<button onClick={() => handleFundAccount()}>Fund Account</button>
+					localKeys.balance && localKeys.balance !== '0' && <>
+						<button onClick={() => handleUpgrade()}>Upgrade Account</button>
 					</>
 				}
 				<br />

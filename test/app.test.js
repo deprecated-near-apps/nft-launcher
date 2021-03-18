@@ -120,7 +120,7 @@ describe('deploy contract ' + contractName, () => {
 
     /// selling token as guest
 
-	test('nft approve account id guest', async () => {
+	test('nft add sale guest', async () => {
         const token_id = tokenIds[0]
 		await bob.functionCall(contractId, 'nft_add_sale_guest', {
             token_id,
@@ -170,4 +170,5 @@ describe('deploy contract ' + contractName, () => {
 		expect(balance.total).toEqual(parseNearAmount('0.9'));
 		
 	});
+
 });

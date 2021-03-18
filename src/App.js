@@ -29,7 +29,7 @@ const App = () => {
 	const signedIn = ((wallet && wallet.signedIn) || (localKeys && localKeys.signedIn));
 	let accountId = '';
 	if (signedIn) {
-		accountId = account ? account.accountId : 'Guest Account';
+		accountId = account ? account.accountId : <span>Guest Account<br />{localKeys.accessAccountId.split('.')[0]}</span>;
 	}
 
 	if (profile && !signedIn) {
