@@ -150,12 +150,14 @@ impl Contract {
             price: price.clone().into(),
             deposit: deposit.clone()
         };
+        let current_account_id = env::current_account_id();
         // make market add sale
         ext_market::add_sale(
-            env::current_account_id(),
+            current_account_id.clone(),
             token_id.clone(),
             price,
             guest.account_id,
+            Some(current_account_id),
             &market_contract,
             deposit,
             GAS_FOR_MARKET_CALL
@@ -248,7 +250,7 @@ impl Contract {
             env::panic(b"The account is already registered");
         }
 
-        let mut tokens_set = UnorderedSet::new(unique_prefix(&account_id));
+        let tokens_set = UnorderedSet::new(unique_prefix(&account_id));
         self.tokens_per_owner.insert(&account_id, &tokens_set);
         
         if self.guests.insert(&public_key.into(), &Guest{
@@ -324,7 +326,7 @@ pub trait ExtContract {
 /// external calls to marketplace
 #[ext_contract(ext_market)]
 trait ExtTransfer {
-    fn add_sale(&mut self, token_contract_id: AccountId, token_id: String, price: U128, on_behalf_of: AccountId);
+    fn add_sale(&mut self, token_contract_id: AccountId, token_id: String, price: U128, owner_id: AccountId, beneficiary: Option<AccountId>);
     fn remove_sale(&mut self, token_contract_id: AccountId, token_id: String);
 }
 

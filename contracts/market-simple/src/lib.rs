@@ -44,21 +44,23 @@ impl Contract {
     }
 
     #[payable]
-    pub fn add_sale(&mut self, token_contract_id: ValidAccountId, token_id: String, price: U128, on_behalf_of: Option<AccountId>) {
+    pub fn add_sale(&mut self, token_contract_id: ValidAccountId, token_id: String, price: U128, owner_id: ValidAccountId, beneficiary: Option<ValidAccountId>) {
         let deposit = env::attached_deposit();
         assert!(deposit >= MIN_ATTACHED_DEPOSIT, "Must attach at least 0.1 NEAR as deposit to list sale");
         let contract_id: AccountId = token_contract_id.into();
         
-        // if passed we use this as owner for sale info
-        let mut owner_id = env::predecessor_account_id();
-        if let Some(on_behalf_of) = on_behalf_of {
-            owner_id = on_behalf_of;
+        // if you are making a sale on someone's behalf and you want to escrow the funds (guest accounts)
+        let mut sale_beneficiary = owner_id.clone();
+        if let Some(beneficiary) = beneficiary {
+            sale_beneficiary = beneficiary;
         }
-        env::log(format!("add_sale for owner: {}", owner_id.clone()).as_bytes());
+        let owner: AccountId = owner_id.into();
+
+        env::log(format!("add_sale for owner: {}", owner.clone()).as_bytes());
         
         self.sales.insert(&format!("{}:{}", contract_id, token_id), &Sale{
-            owner_id,
-            beneficiary: env::predecessor_account_id(),
+            owner_id: owner,
+            beneficiary: sale_beneficiary.into(),
             price,
             deposit,
             processing: false,
@@ -115,6 +117,8 @@ impl Contract {
         ))
     }
 
+    /// self callback
+
     pub fn nft_resolve_purchase(
         &mut self,
         token_contract_id: AccountId,
@@ -165,4 +169,59 @@ trait ExtTransfer {
         enforce_owner_id: ValidAccountId,
         memo: String,
     );
+}
+
+/// approval callbacks from NFT contracts 
+
+trait NonFungibleTokenApprovalsReceiver {
+    fn nft_on_approve_account_id(
+        &mut self,
+        token_contract_id: ValidAccountId,
+        token_id: TokenId,
+        owner_id: ValidAccountId,
+        msg: Option<String>,
+    ) -> bool;
+    fn nft_on_revoke_account_id(
+        &mut self,
+        token_contract_id: ValidAccountId,
+        token_id: TokenId,
+        owner_id: ValidAccountId,
+        msg: Option<String>,
+    ) -> bool;
+}
+
+#[near_bindgen]
+impl NonFungibleTokenApprovalsReceiver for Contract {
+
+    #[payable]
+    fn nft_on_approve_account_id(
+        &mut self,
+        token_contract_id: ValidAccountId,
+        token_id: TokenId,
+        owner_id: ValidAccountId,
+        msg: Option<String>,
+    ) -> bool {
+        let contract: AccountId = token_contract_id.clone().into();
+        assert_eq!(env::predecessor_account_id(), contract, "Approval callbacks need to be called by the NFT Contract");
+        if let Some(msg) = msg {
+            let price = u128::from_str_radix(&msg, 10).expect("msg should convert to u128 for sale price of token");
+            self.add_sale(token_contract_id, token_id, price.into(), owner_id, None);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn nft_on_revoke_account_id(
+        &mut self,
+        token_contract_id: ValidAccountId,
+        token_id: TokenId,
+        _owner_id: ValidAccountId,
+        _msg: Option<String>,
+    ) -> bool {
+        let contract: AccountId = token_contract_id.clone().into();
+        assert_eq!(env::predecessor_account_id(), contract, "Approval callbacks need to be called by the NFT Contract");
+        self.remove_sale(token_contract_id, token_id);
+        true
+    }
 }

@@ -83,6 +83,22 @@ describe('deploy contract ' + contractName, () => {
         }
 	});
 
+    test('nft mint and approve but no sale', async () => {
+        const token_id = tokenIds[2]
+		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata: metadata2 }, GAS, parseNearAmount('1'));
+        /// msg is the price
+        await alice.functionCall(contractId, 'nft_approve_account_id', {
+            token_id,
+            account_id: marketId,
+            msg: parseNearAmount('1')
+        }, GAS, parseNearAmount('0.1001'));
+        const token = await contract.nft_token({ token_id });
+        const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
+		console.log('\n\n', sale, '\n\n');
+        expect(sale.price).toEqual(parseNearAmount('1'))
+        expect(token.owner_id).toEqual(alice.accountId)
+	});
+
 	test('nft mint', async () => {
         const token_id = tokenIds[0]
 		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata }, GAS, parseNearAmount('1'));
@@ -96,18 +112,6 @@ describe('deploy contract ' + contractName, () => {
 		await alice.functionCall(contractId, 'nft_transfer', { token_id, receiver_id: bobId }, GAS, 1);
         const token = await contract.nft_token({ token_id });
         expect(token.owner_id).toEqual(bobId)
-	});
-
-    test('nft mint and approve but no sale', async () => {
-        const token_id = tokenIds[2]
-		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata: metadata2 }, GAS, parseNearAmount('1'));
-        await alice.functionCall(contractId, 'nft_approve_account_id', { token_id, account_id: marketId }, GAS, parseNearAmount('0.1'));
-        await alice.functionCall(marketId, 'add_sale', { token_contract_id: contractId, token_id, price: parseNearAmount('1') }, GAS, parseNearAmount('0.1'));
-        const token = await contract.nft_token({ token_id });
-        const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
-		console.log('\n\n', sale, '\n\n');
-        expect(sale.price).toEqual(parseNearAmount('1'))
-        expect(token.owner_id).toEqual(alice.accountId)
 	});
 
 	test('nft mint guest', async () => {
