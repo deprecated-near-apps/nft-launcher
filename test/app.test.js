@@ -203,7 +203,7 @@ describe('deploy contract ' + contractName, () => {
         const token_id = tokenIds[1]
 		await bob.functionCall(contractId, 'nft_mint_guest', { token_id, metadata3 }, GAS);
         const token = await contract.nft_token({ token_id });
-        expect(token.metadata).toEqual(metadata3)
+        expect(token.metadata3).toEqual(metadata3)
         expect(token.owner_id).toEqual(bobId)
 	});
 
