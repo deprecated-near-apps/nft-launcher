@@ -165,6 +165,7 @@ describe('deploy contract ' + contractName, () => {
 			access_key: public_key2,
 			method_names: '',
 		}, GAS);
+        console.log('\n\n', result, '\n\n');
 		/// update account and contract for bob (bob now pays gas)
 		const balance = await testUtils.getAccountBalance(bobId);
 		expect(balance.total).toEqual(parseNearAmount('0.9'));

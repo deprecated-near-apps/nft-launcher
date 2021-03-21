@@ -1,6 +1,6 @@
 use crate::*;
 use near_sdk::json_types::{ValidAccountId, U64};
-use near_sdk::{ext_contract, Gas, PromiseResult};
+use near_sdk::{ext_contract, Gas, PromiseOrValue, PromiseResult};
 
 const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
 const GAS_FOR_NFT_TRANSFER_CALL: Gas = 25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER;
@@ -26,11 +26,11 @@ pub trait NonFungibleTokenCore {
         msg: String,
     ) -> Promise;
 
-    fn nft_approve_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId) -> bool;
+    fn nft_approve_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId, receiver_id: Option<ValidAccountId>, msg: Option<String>) -> PromiseOrValue<bool>;
 
-    fn nft_revoke_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId) -> bool;
+    fn nft_revoke_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId, receiver_id: Option<ValidAccountId>, msg: Option<String>) -> PromiseOrValue<bool>;
 
-    fn nft_revoke_all(&mut self, token_id: TokenId);
+    fn nft_revoke_all(&mut self, token_id: TokenId, receiver_id: Option<ValidAccountId>, msg: Option<String>) -> PromiseOrValue<bool>;
 
     fn nft_total_supply(&self) -> U64;
 
@@ -47,6 +47,31 @@ trait NonFungibleTokenReceiver {
         previous_owner_id: AccountId,
         token_id: TokenId,
         msg: String,
+    ) -> Promise;
+}
+
+#[ext_contract(ext_non_fungible_approval_receiver)]
+trait NonFungibleTokenApprovalsReceiver {
+    fn nft_on_approve_account_id(
+        &mut self,
+        token_contract_id: AccountId,
+        token_id: TokenId,
+        owner_id: AccountId,
+        msg: Option<String>,
+    ) -> Promise;
+    fn nft_on_revoke_account_id(
+        &mut self,
+        token_contract_id: AccountId,
+        token_id: TokenId,
+        owner_id: AccountId,
+        msg: Option<String>,
+    ) -> Promise;
+    fn nft_on_revoke_all(
+        &mut self,
+        token_contract_id: AccountId,
+        token_id: TokenId,
+        owner_id: AccountId,
+        msg: Option<String>,
     ) -> Promise;
 }
 
@@ -82,14 +107,6 @@ impl NonFungibleTokenCore for Contract {
         memo: Option<String>,
     ) {
         assert_one_yocto();
-        let sender_id = env::predecessor_account_id();
-        let (previous_owner_id, approved_account_ids) = self.internal_transfer(
-            &sender_id,
-            receiver_id.as_ref(),
-            &token_id,
-            enforce_owner_id.as_ref(),
-            memo,
-        );
         
         // If sale was made on_behalf_of guest then give guest the balance of the sale
         if let Some(guest_sale) = self.guest_sales.get(&token_id) {
@@ -99,6 +116,14 @@ impl NonFungibleTokenCore for Contract {
             self.guests.insert(&guest_sale.public_key, &guest);
         }
 
+        let sender_id = env::predecessor_account_id();
+        let (previous_owner_id, approved_account_ids) = self.internal_transfer(
+            &sender_id,
+            receiver_id.as_ref(),
+            &token_id,
+            enforce_owner_id.as_ref(),
+            memo,
+        );
         refund_approved_account_ids(previous_owner_id, &approved_account_ids);
     }
 
@@ -142,22 +167,50 @@ impl NonFungibleTokenCore for Contract {
     }
 
     #[payable]
-    fn nft_approve_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId) -> bool {
+    fn nft_approve_account_id(
+        &mut self,
+        token_id: TokenId,
+        account_id: ValidAccountId,
+        receiver_id: Option<ValidAccountId>,
+        msg: Option<String>,
+    ) -> PromiseOrValue<bool> {
+        let mut deposit = env::attached_deposit();
+        let account_id: AccountId = account_id.into();
+        let storage_required = bytes_for_approved_account_id(&account_id);
+        assert!(deposit >= storage_required as u128, "Deposit doesn't cover storage of account_id: {}", account_id.clone());
+
         let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
         assert_eq!(&env::predecessor_account_id(), &token.owner_id);
-        let account_id: AccountId = account_id.into();
-        let storage_used = bytes_for_approved_account_id(&account_id);
+
         if token.approved_account_ids.insert(account_id) {
-            deposit_refund(storage_used);
+            deposit -= storage_required as u128;
             self.tokens_by_id.insert(&token_id, &token);
-            true
+            if let Some(receiver_id) = receiver_id {
+                PromiseOrValue::Promise(ext_non_fungible_approval_receiver::nft_on_approve_account_id(
+                    env::current_account_id(),
+                    token_id,
+                    token.owner_id,
+                    msg,
+                    receiver_id.as_ref(),
+                    deposit,
+                    env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
+                ))
+            } else {
+                PromiseOrValue::Value(true)
+            }
         } else {
-            false
+            PromiseOrValue::Value(false)
         }
     }
 
     #[payable]
-    fn nft_revoke_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId) -> bool {
+    fn nft_revoke_account_id(
+        &mut self,
+        token_id: TokenId,
+        account_id: ValidAccountId,
+        receiver_id: Option<ValidAccountId>,
+        msg: Option<String>,
+    ) -> PromiseOrValue<bool> {
         assert_one_yocto();
         let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
         let predecessor_account_id = env::predecessor_account_id();
@@ -167,14 +220,31 @@ impl NonFungibleTokenCore for Contract {
             Promise::new(env::predecessor_account_id())
                 .transfer(Balance::from(storage_released) * STORAGE_PRICE_PER_BYTE);
             self.tokens_by_id.insert(&token_id, &token);
-            true
+            if let Some(receiver_id) = receiver_id {
+                PromiseOrValue::Promise(ext_non_fungible_approval_receiver::nft_on_revoke_account_id(
+                    env::current_account_id(),
+                    token_id,
+                    token.owner_id,
+                    msg,
+                    receiver_id.as_ref(),
+                    1,
+                    env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
+                ))
+            } else {
+                PromiseOrValue::Value(true)
+            }
         } else {
-            false
+            PromiseOrValue::Value(false)
         }
     }
 
     #[payable]
-    fn nft_revoke_all(&mut self, token_id: TokenId) {
+    fn nft_revoke_all(
+        &mut self,
+        token_id: TokenId,
+        receiver_id: Option<ValidAccountId>,
+        msg: Option<String>,
+    ) -> PromiseOrValue<bool> {
         assert_one_yocto();
         let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
         let predecessor_account_id = env::predecessor_account_id();
@@ -183,6 +253,21 @@ impl NonFungibleTokenCore for Contract {
             refund_approved_account_ids(predecessor_account_id, &token.approved_account_ids);
             token.approved_account_ids.clear();
             self.tokens_by_id.insert(&token_id, &token);
+            if let Some(receiver_id) = receiver_id {
+                PromiseOrValue::Promise(ext_non_fungible_approval_receiver::nft_on_revoke_all(
+                    env::current_account_id(),
+                    token_id,
+                    token.owner_id,
+                    msg,
+                    receiver_id.as_ref(),
+                    1,
+                    env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
+                ))
+            } else {
+                PromiseOrValue::Value(true)
+            }
+        } else {
+            PromiseOrValue::Value(false)
         }
     }
 

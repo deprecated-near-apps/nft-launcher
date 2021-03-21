@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 near-sdk = "3.0.0-pre.release"
 
 [profile.release]
-codegen-units=1
+codegen-units=24
 opt-level = "z"
 lto = true
 debug = false
