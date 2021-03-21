@@ -48,6 +48,7 @@ Then, following the server tests, the guest transfers tokens to alice (who is a 
 Finally, the guest upgrades themselves to a real NEAR account, something demoed in the video.
 
 It's a lot to digest but if you focus on the `/test/app.test.js` you will start to see the patterns.
+
 # Background
 
 One of the issues with onboarding new users to crypto is that they need to have crypto to do anything e.g. mint an NFT. A creator, artist or community might want to drop a bunch of free minting options to their fans for them to mint user generated content, but the audience has (1) no crypto to pay for fees (2) no wallet (3) no concept of crypto or blockchain; prior to the drop. 
@@ -265,6 +266,22 @@ When the button is clicked, the component HelloMessage will not re-render, it's 
 Reference:
 - https://reactjs.org/docs/context.html
 - https://dmitripavlutin.com/use-react-memo-wisely/
+
+## NFT Storage
+
+1. Register a storage account at https://nft.storage
+2. Login and go to Manage API Keys to obtain your API access key.
+3. Create a .env file and add `NFT_STORAGE_API_KEY=<INSERT_YOUR_API_KEY>`
+3. Install the dependency `npm install --save nft.storage`
+4. Use the client in Node.js
+```js
+const client = new NFTStorage({ token: apiKey })
+
+const content = new Blob(['hello world'])
+const cid = await client.storeBlob(content)
+console.log(cid)
+```
+5. Refer to the [NFT Storage API documentation](https://ipfs-shipyard.github.io/nft.storage/client/classes/lib.nftstorage.html)
 
 
 

@@ -5,9 +5,14 @@
     "author": "Matt Lockyer",
     "license": "ISC",
     "dependencies": {
+        "animated-gif-detector": "^1.2.0",
         "bn": "^1.0.5",
+        "file-type": "^16.3.0",
+        "js-base64": "^3.6.0",
         "near-api-js": "^0.36.2",
         "near-seed-phrase": "^0.1.0",
+        "nft.storage": "^0.3.8",
+        "node-fetch": "^2.6.1",
         "parcel": "^2.0.0-beta.1",
         "react": "^17.0.1",
         "react-dom": "^17.0.1"
@@ -16,7 +21,6 @@
         "eslint": "^7.14.0",
         "jest": "^26.6.3",
         "jest-environment-uint8array": "^1.0.0",
-        "node-fetch": "^2.6.1",
         "rimraf": "^3.0.2",
         "sass": "^1.32.8"
     },

@@ -1,4 +1,4 @@
-const contractName = 'dev-1616049419045-3265728';
+const contractName = 'dev-1616300896799-3237034';
 
 module.exports = function getConfig() {
 	let config = {
@@ -24,8 +24,9 @@ module.exports = function getConfig() {
                 ],
 				viewMethods: ['get_guest', 'get_token_ids', 'nft_token', 'get_sale'],
 			},
-            marketDeposit: '100000000000000000000000',
-            marketId: 'market.' + contractName
+			marketDeposit: '100000000000000000000000',
+			marketId: 'market.' + contractName,
+			nftStorageAPIKey: process.env.NFT_STORAGE_API_KEY,
 		};
 	}
     
