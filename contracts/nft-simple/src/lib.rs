@@ -17,8 +17,9 @@ mod nft_core;
 #[global_allocator]
 static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc::INIT;
 
+const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
 const ON_CALLBACK_GAS: u64 = 20_000_000_000_000;
-const GAS_FOR_MARKET_CALL: Gas = 25_000_000_000_000;
+const GAS_FOR_NFT_TRANSFER_CALL: Gas = 25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER;
 const NO_DEPOSIT: Balance = 0;
 const GUEST_STRING_LENGTH_LIMIT: usize = 256;
 const GUEST_MINT_LIMIT: u8 = 3;
@@ -144,30 +145,28 @@ impl Contract {
         let token = self.tokens_by_id.get(&token_id).expect("Token not found");
         assert_eq!(&guest.account_id, &token.owner_id);
         assert_eq!(token.approved_account_ids.len(), 0, "Can only approve one market at a time as guest");
-        let market_contract: AccountId = market_id.into();
+        let market_contract: AccountId = market_id.clone().into();
         let sale = GuestSale {
             public_key: env::signer_account_pk(),
             price: price.clone().into(),
             deposit: deposit.clone()
         };
         let current_account_id = env::current_account_id();
-        // make market add sale
-        ext_market::add_sale(
+        ext_non_fungible_approval_receiver::nft_on_approve_account_id(
             current_account_id.clone(),
             token_id.clone(),
-            price,
-            guest.account_id,
-            Some(current_account_id),
+            token.owner_id,
+            Some(format!("{{\"beneficiary\":\"{}\",\"price\":\"{}\"}}", current_account_id, u128::from(price).to_string())),
             &market_contract,
-            deposit,
-            GAS_FOR_MARKET_CALL
+            MAX_MARKET_DEPOSIT,
+            env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
         ).then(ext_self::on_market_updated(
             token_id,
             market_contract,
             Some(sale),
-            &env::current_account_id(),
+            &current_account_id,
             NO_DEPOSIT,
-            ON_CALLBACK_GAS,
+            GAS_FOR_RESOLVE_TRANSFER,
         ));
     }
 
@@ -175,22 +174,24 @@ impl Contract {
         let guest = self.admin_guest(0);
         let token = self.tokens_by_id.get(&token_id).expect("Token not found");
         assert_eq!(&guest.account_id, &token.owner_id);
-        let market_contract: AccountId = market_id.into();
+        let market_contract: AccountId = market_id.clone().into();
         assert_eq!(token.approved_account_ids.len(), 1, "No sale at market {}", market_contract.clone());
         // make market remove sale
-        ext_market::remove_sale(
+        ext_non_fungible_approval_receiver::nft_on_revoke_account_id(
             env::current_account_id(),
             token_id.clone(),
+            token.owner_id,
+            None,
             &market_contract,
             NO_DEPOSIT,
-            GAS_FOR_MARKET_CALL
+            env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
         ).then(ext_self::on_market_updated(
             token_id,
             market_contract,
             None,
             &env::current_account_id(),
             NO_DEPOSIT,
-            ON_CALLBACK_GAS,
+            GAS_FOR_RESOLVE_TRANSFER,
         ));
     }
 

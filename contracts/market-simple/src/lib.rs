@@ -190,6 +190,13 @@ trait NonFungibleTokenApprovalsReceiver {
     ) -> bool;
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct OnApprovalMsg {
+    pub beneficiary: AccountId,
+    pub price: U128,
+}
+
 #[near_bindgen]
 impl NonFungibleTokenApprovalsReceiver for Contract {
 
@@ -204,8 +211,9 @@ impl NonFungibleTokenApprovalsReceiver for Contract {
         let contract: AccountId = token_contract_id.clone().into();
         assert_eq!(env::predecessor_account_id(), contract, "Approval callbacks need to be called by the NFT Contract");
         if let Some(msg) = msg {
-            let price = u128::from_str_radix(&msg, 10).expect("msg should convert to u128 for sale price of token");
-            self.add_sale(token_contract_id, token_id, price.into(), owner_id, None);
+            let msg_data: OnApprovalMsg = near_sdk::serde_json::from_str(&msg).expect("Valid OnApprovalMsg");
+            let beneficiary = ValidAccountId::try_from(msg_data.beneficiary).expect("Valid account id passd in msg to nft_on_approve_account_id");
+            self.add_sale(token_contract_id, token_id, msg_data.price.into(), owner_id, Some(beneficiary));
             true
         } else {
             false

@@ -1,11 +1,6 @@
 use crate::*;
 use near_sdk::json_types::{ValidAccountId, U64};
-use near_sdk::{ext_contract, Gas, PromiseOrValue, PromiseResult};
-
-const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
-const GAS_FOR_NFT_TRANSFER_CALL: Gas = 25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER;
-
-const NO_DEPOSIT: Balance = 0;
+use near_sdk::{ext_contract, PromiseOrValue, PromiseResult};
 
 pub trait NonFungibleTokenCore {
     fn nft_transfer(
@@ -106,6 +101,7 @@ impl NonFungibleTokenCore for Contract {
             let mut guest = self.guests.get(&guest_sale.public_key).expect("No guest");
             let new_balance = u128::from(guest.balance) + guest_sale.price;
             guest.balance = U128(new_balance);
+            env::log(format!("New guest balance {}", new_balance).as_bytes());
             self.guests.insert(&guest_sale.public_key, &guest);
         }
 

@@ -90,7 +90,10 @@ describe('deploy contract ' + contractName, () => {
         await alice.functionCall(contractId, 'nft_approve_account_id', {
             token_id,
             account_id: marketId,
-            msg: parseNearAmount('1')
+            msg: JSON.stringify({
+                beneficiary: alice.accountId,
+                price: parseNearAmount('1')
+            })
         }, GAS, parseNearAmount('0.1001'));
         const token = await contract.nft_token({ token_id });
         const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
@@ -132,15 +135,17 @@ describe('deploy contract ' + contractName, () => {
             market_id: marketId,
             market_deposit
         }, GAS);
+        /// don't panic
 	});
 
 	test('get sale', async () => {
         const token_id = tokenIds[0]
-		const sale = await alice.functionCall(marketId, 'get_sale', {
+		const sale = await alice.viewFunction(marketId, 'get_sale', {
             token_contract_id: contractId,
             token_id
-        }, GAS);
-        console.log('\n\nsale.status', sale.status, '\n\n');
+        });
+		console.log('\n\n', sale, '\n\n');
+        expect(sale.owner_id).toEqual(bobId)
 	});
 
 	test('purchase nft from market', async () => {
