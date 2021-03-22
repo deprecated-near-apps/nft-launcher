@@ -17,8 +17,8 @@ mod nft_core;
 #[global_allocator]
 static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc::INIT;
 
-const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
 const ON_CALLBACK_GAS: u64 = 20_000_000_000_000;
+const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
 const GAS_FOR_NFT_TRANSFER_CALL: Gas = 25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER;
 const NO_DEPOSIT: Balance = 0;
 const GUEST_STRING_LENGTH_LIMIT: usize = 256;

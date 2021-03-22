@@ -102,6 +102,14 @@ describe('deploy contract ' + contractName, () => {
         expect(token.owner_id).toEqual(alice.accountId)
 	});
 
+	test('change price', async () => {
+        const token_id = tokenIds[0]
+		await alice.functionCall(marketId, 'update_price', { token_contract_id: contractId, token_id, price: parseNearAmount('2') }, GAS);
+        const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
+		console.log('\n\n', sale, '\n\n');
+        expect(sale.price).toEqual(parseNearAmount('2'))
+	});
+
 	test('nft mint', async () => {
         const token_id = tokenIds[0]
 		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata }, GAS, parseNearAmount('1'));

@@ -66,6 +66,19 @@ impl Contract {
             processing: false,
         });
     }
+    
+    pub fn update_price(&mut self, token_contract_id: ValidAccountId, token_id: String, price: U128) {
+        let contract_id: AccountId = token_contract_id.into();
+        let contract_and_token_id = format!("{}:{}", contract_id, token_id);
+        let mut sale = self.sales.remove(&contract_and_token_id).expect("No sale");
+        assert_eq!(
+            env::predecessor_account_id(),
+            sale.owner_id,
+            "Must be sale owner"
+        );
+        sale.price = price;
+        self.sales.insert(&contract_and_token_id, &sale);
+    }
 
     /// should be able to pull a sale without yocto redirect to wallet?
     pub fn remove_sale(&mut self, token_contract_id: ValidAccountId, token_id: String) {

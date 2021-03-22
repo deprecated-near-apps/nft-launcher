@@ -103,18 +103,27 @@ export const Gallery = ({ near, signedIn, contractAccount, account, localKeys, l
                 market_deposit: marketDeposit
             }, GAS)
 		} else {
-            alert('You will be redirected twice. Once to approve the marketplace to transfer your NFT and the second time to approve the sale price.')
-            set(ADD_SALE, {
-                token_contract_id: contractName,
-                token_id,
-                price: parseNearAmount(amount),
-            })
-            await account.functionCall(contractName, 'nft_approve_account_id', {
-                token_id,
-                account_id: marketId,
-            }, GAS, marketDeposit)
-
-            
+			try {
+				const sale = await account.viewFunction(marketId, 'get_sale', { token_contract_id: contractName, token_id });
+				console.log('\n\nSale exists, updating price:', sale, '\n\n');
+				/// paying above marketDeposit, but after sale deposit will be paid back
+				await account.functionCall(marketId, 'update_price', {
+					token_contract_id: contractName,
+					token_id,
+					price: parseNearAmount(amount)
+				}, GAS)
+			} catch(e) {
+				console.warn(e)
+				/// paying above marketDeposit, but after sale deposit will be paid back
+				await account.functionCall(contractName, 'nft_approve_account_id', {
+					token_id,
+					account_id: marketId,
+					msg: JSON.stringify({
+						beneficiary: account.accountId,
+						price: parseNearAmount(amount)
+					})
+				}, GAS, parseNearAmount('0.1001'))
+			}
         }
 		await loadItems();
 		update('loading', false);
