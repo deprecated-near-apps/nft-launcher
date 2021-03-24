@@ -1,13 +1,17 @@
 use crate::*;
 use near_sdk::json_types::{ValidAccountId, U64};
-use near_sdk::{ext_contract, PromiseOrValue, PromiseResult};
+use near_sdk::{ext_contract, Gas, PromiseResult};
+
+const GAS_FOR_RESOLVE_TRANSFER: Gas = 10_000_000_000_000;
+const GAS_FOR_NFT_TRANSFER_CALL: Gas = 25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER;
+const NO_DEPOSIT: Balance = 0;
 
 pub trait NonFungibleTokenCore {
     fn nft_transfer(
         &mut self,
         receiver_id: ValidAccountId,
         token_id: TokenId,
-        enforce_owner_id: Option<ValidAccountId>,
+        enforce_approval_id: Option<u64>,
         memo: Option<String>,
     );
 
@@ -16,14 +20,14 @@ pub trait NonFungibleTokenCore {
         &mut self,
         receiver_id: ValidAccountId,
         token_id: TokenId,
-        enforce_owner_id: Option<ValidAccountId>,
+        enforce_approval_id: Option<u64>,
         memo: Option<String>,
         msg: String,
     ) -> Promise;
 
-    fn nft_approve_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId, msg: Option<String>) -> PromiseOrValue<bool>;
+    fn nft_approve(&mut self, token_id: TokenId, account_id: ValidAccountId, msg: Option<String>) -> bool;
 
-    fn nft_revoke_account_id(&mut self, token_id: TokenId, account_id: ValidAccountId, msg: Option<String>) -> PromiseOrValue<bool>;
+    fn nft_revoke(&mut self, token_id: TokenId, account_id: ValidAccountId) -> bool;
 
     fn nft_revoke_all(&mut self, token_id: TokenId) -> bool;
 
@@ -47,18 +51,12 @@ trait NonFungibleTokenReceiver {
 
 #[ext_contract(ext_non_fungible_approval_receiver)]
 trait NonFungibleTokenApprovalsReceiver {
-    fn nft_on_approve_account_id(
+    fn nft_on_approve(
         &mut self,
         token_contract_id: AccountId,
         token_id: TokenId,
         owner_id: AccountId,
-        msg: Option<String>,
-    ) -> Promise;
-    fn nft_on_revoke_account_id(
-        &mut self,
-        token_contract_id: AccountId,
-        token_id: TokenId,
-        owner_id: AccountId,
+        approval_id: u64,
         msg: Option<String>,
     ) -> Promise;
 }
@@ -91,10 +89,19 @@ impl NonFungibleTokenCore for Contract {
         &mut self,
         receiver_id: ValidAccountId,
         token_id: TokenId,
-        enforce_owner_id: Option<ValidAccountId>,
+        enforce_approval_id: Option<u64>,
         memo: Option<String>,
     ) {
         assert_one_yocto();
+
+        let sender_id = env::predecessor_account_id();
+        let (previous_owner_id, approved_account_ids) = self.internal_transfer(
+            &sender_id,
+            receiver_id.as_ref(),
+            &token_id,
+            enforce_approval_id,
+            memo,
+        );
 
         // If sale was made on_behalf_of guest then give guest the balance of the sale
         if let Some(guest_sale) = self.guest_sales.get(&token_id) {
@@ -105,14 +112,6 @@ impl NonFungibleTokenCore for Contract {
             self.guests.insert(&guest_sale.public_key, &guest);
         }
 
-        let sender_id = env::predecessor_account_id();
-        let (previous_owner_id, approved_account_ids) = self.internal_transfer(
-            &sender_id,
-            receiver_id.as_ref(),
-            &token_id,
-            enforce_owner_id.as_ref(),
-            memo,
-        );
         refund_approved_account_ids(previous_owner_id, &approved_account_ids);
     }
 
@@ -121,7 +120,7 @@ impl NonFungibleTokenCore for Contract {
         &mut self,
         receiver_id: ValidAccountId,
         token_id: TokenId,
-        enforce_owner_id: Option<ValidAccountId>,
+        enforce_approval_id: Option<u64>,
         memo: Option<String>,
         msg: String,
     ) -> Promise {
@@ -131,7 +130,7 @@ impl NonFungibleTokenCore for Contract {
             &sender_id,
             receiver_id.as_ref(),
             &token_id,
-            enforce_owner_id.as_ref(),
+            enforce_approval_id,
             memo,
         );
         // Initiating receiver's call and the callback
@@ -156,12 +155,12 @@ impl NonFungibleTokenCore for Contract {
     }
 
     #[payable]
-    fn nft_approve_account_id(
+    fn nft_approve(
         &mut self,
         token_id: TokenId,
         account_id: ValidAccountId,
         msg: Option<String>,
-    ) -> PromiseOrValue<bool> {
+    ) -> bool {
         let mut deposit = env::attached_deposit();
         let account_id: AccountId = account_id.into();
         let storage_required = bytes_for_approved_account_id(&account_id);
@@ -172,28 +171,32 @@ impl NonFungibleTokenCore for Contract {
 
         if token.approved_account_ids.insert(account_id.clone()) {
             deposit -= storage_required as u128;
+
+            token.approval_id += 1;
+
             self.tokens_by_id.insert(&token_id, &token);
-            ext_non_fungible_approval_receiver::nft_on_approve_account_id(
+            ext_non_fungible_approval_receiver::nft_on_approve(
                 env::current_account_id(),
                 token_id,
                 token.owner_id,
+                token.approval_id,
                 msg,
                 &account_id,
                 deposit,
                 env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
-            ).into()
+            );
+            true
         } else {
-            PromiseOrValue::Value(false)
+            false
         }
     }
 
     #[payable]
-    fn nft_revoke_account_id(
+    fn nft_revoke(
         &mut self,
         token_id: TokenId,
         account_id: ValidAccountId,
-        msg: Option<String>,
-    ) -> PromiseOrValue<bool> {
+    ) -> bool {
         assert_one_yocto();
         let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
         let predecessor_account_id = env::predecessor_account_id();
@@ -203,17 +206,9 @@ impl NonFungibleTokenCore for Contract {
             Promise::new(env::predecessor_account_id())
                 .transfer(Balance::from(storage_released) * STORAGE_PRICE_PER_BYTE);
             self.tokens_by_id.insert(&token_id, &token);
-            ext_non_fungible_approval_receiver::nft_on_revoke_account_id(
-                env::current_account_id(),
-                token_id,
-                token.owner_id,
-                msg,
-                account_id.as_ref(),
-                NO_DEPOSIT,
-                env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
-            ).into()
+            true
         } else {
-            PromiseOrValue::Value(false)
+            false
         }
     }
 

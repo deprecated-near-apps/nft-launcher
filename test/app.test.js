@@ -87,7 +87,7 @@ describe('deploy contract ' + contractName, () => {
         const token_id = tokenIds[2]
 		await alice.functionCall(contractId, 'nft_mint', { token_id, metadata: metadata2 }, GAS, parseNearAmount('1'));
         /// msg is the price
-        await alice.functionCall(contractId, 'nft_approve_account_id', {
+        await alice.functionCall(contractId, 'nft_approve', {
             token_id,
             account_id: marketId,
             msg: JSON.stringify({
@@ -103,7 +103,7 @@ describe('deploy contract ' + contractName, () => {
 	});
 
 	test('change price', async () => {
-        const token_id = tokenIds[0]
+        const token_id = tokenIds[2]
 		await alice.functionCall(marketId, 'update_price', { token_contract_id: contractId, token_id, price: parseNearAmount('2') }, GAS);
         const sale = await alice.viewFunction(marketId, 'get_sale', { token_contract_id: contractId, token_id });
 		console.log('\n\n', sale, '\n\n');

@@ -19,6 +19,7 @@ pub type ContractAndTokenId = String;
 #[serde(crate = "near_sdk::serde")]
 pub struct Sale {
     pub owner_id: AccountId,
+    pub approval_id: u64,
     pub beneficiary: AccountId,
     pub price: U128,
     pub deposit: Balance,
@@ -44,7 +45,7 @@ impl Contract {
     }
 
     #[payable]
-    pub fn add_sale(&mut self, token_contract_id: ValidAccountId, token_id: String, price: U128, owner_id: ValidAccountId, beneficiary: Option<ValidAccountId>) {
+    pub fn add_sale(&mut self, token_contract_id: ValidAccountId, token_id: String, price: U128, owner_id: ValidAccountId, approval_id: u64, beneficiary: Option<ValidAccountId>) {
         let deposit = env::attached_deposit();
         assert!(deposit >= MIN_ATTACHED_DEPOSIT, "Must attach at least 0.1 NEAR as deposit to list sale");
         let contract_id: AccountId = token_contract_id.into();
@@ -54,12 +55,12 @@ impl Contract {
         if let Some(beneficiary) = beneficiary {
             sale_beneficiary = beneficiary;
         }
-        let owner: AccountId = owner_id.into();
 
-        env::log(format!("add_sale for owner: {}", owner.clone()).as_bytes());
+        env::log(format!("add_sale for owner: {}", owner_id.clone().as_ref()).as_bytes());
         
         self.sales.insert(&format!("{}:{}", contract_id, token_id), &Sale{
-            owner_id: owner,
+            owner_id: owner_id.into(),
+            approval_id,
             beneficiary: sale_beneficiary.into(),
             price,
             deposit,
@@ -187,18 +188,12 @@ trait ExtTransfer {
 /// approval callbacks from NFT contracts 
 
 trait NonFungibleTokenApprovalsReceiver {
-    fn nft_on_approve_account_id(
+    fn nft_on_approve(
         &mut self,
         token_contract_id: ValidAccountId,
         token_id: TokenId,
         owner_id: ValidAccountId,
-        msg: Option<String>,
-    ) -> bool;
-    fn nft_on_revoke_account_id(
-        &mut self,
-        token_contract_id: ValidAccountId,
-        token_id: TokenId,
-        owner_id: ValidAccountId,
+        approval_id: u64,
         msg: Option<String>,
     ) -> bool;
 }
@@ -214,11 +209,12 @@ pub struct OnApprovalMsg {
 impl NonFungibleTokenApprovalsReceiver for Contract {
 
     #[payable]
-    fn nft_on_approve_account_id(
+    fn nft_on_approve(
         &mut self,
         token_contract_id: ValidAccountId,
         token_id: TokenId,
         owner_id: ValidAccountId,
+        approval_id: u64,
         msg: Option<String>,
     ) -> bool {
         let contract: AccountId = token_contract_id.clone().into();
@@ -226,23 +222,10 @@ impl NonFungibleTokenApprovalsReceiver for Contract {
         if let Some(msg) = msg {
             let msg_data: OnApprovalMsg = near_sdk::serde_json::from_str(&msg).expect("Valid OnApprovalMsg");
             let beneficiary = ValidAccountId::try_from(msg_data.beneficiary).expect("Valid account id passd in msg to nft_on_approve_account_id");
-            self.add_sale(token_contract_id, token_id, msg_data.price.into(), owner_id, Some(beneficiary));
+            self.add_sale(token_contract_id, token_id, msg_data.price.into(), owner_id, approval_id, Some(beneficiary));
             true
         } else {
             false
         }
-    }
-
-    fn nft_on_revoke_account_id(
-        &mut self,
-        token_contract_id: ValidAccountId,
-        token_id: TokenId,
-        _owner_id: ValidAccountId,
-        _msg: Option<String>,
-    ) -> bool {
-        let contract: AccountId = token_contract_id.clone().into();
-        assert_eq!(env::predecessor_account_id(), contract, "Approval callbacks need to be called by the NFT Contract");
-        self.remove_sale(token_contract_id, token_id);
-        true
     }
 }

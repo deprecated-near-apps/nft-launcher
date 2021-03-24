@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Price per 1 byte of storage from mainnet config after `0.18` release and protocol version `42`.
+/// Price per 1 byte of storage from mainnet config after `1.18.0` release and protocol version `42`.
 /// It's 10 times lower than the genesis price.
 pub(crate) const STORAGE_PRICE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
 
@@ -44,6 +44,7 @@ pub(crate) fn deposit_refund(storage_used: u64) {
 }
 
 pub(crate) fn bytes_for_approved_account_id(account_id: &AccountId) -> u64 {
+    // The extra 4 bytes are coming from Borsh serialization to store the length of the string.
     account_id.len() as u64 + 4
 }
 
@@ -102,23 +103,24 @@ impl Contract {
         sender_id: &AccountId,
         receiver_id: &AccountId,
         token_id: &TokenId,
-        enforce_owner_id: Option<&ValidAccountId>,
+        enforce_approval_id: Option<u64>,
         memo: Option<String>,
     ) -> (AccountId, HashSet<AccountId>) {
         let Token {
             owner_id,
             metadata,
             approved_account_ids,
+            approval_id,
         } = self.tokens_by_id.get(token_id).expect("Token not found");
         if sender_id != &owner_id && !approved_account_ids.contains(sender_id) {
             env::panic(b"Unauthorized");
         }
 
-        if let Some(enforce_owner_id) = enforce_owner_id {
+        if let Some(enforce_approval_id) = enforce_approval_id {
             assert_eq!(
-                &owner_id,
-                enforce_owner_id.as_ref(),
-                "The token owner is different from enforced"
+                approval_id,
+                enforce_approval_id,
+                "The token approval_id is different from provided"
             );
         }
 
@@ -142,6 +144,7 @@ impl Contract {
             owner_id: receiver_id.clone(),
             metadata,
             approved_account_ids: Default::default(),
+            approval_id: approval_id + 1,
         };
         self.tokens_by_id.insert(token_id, &token);
 

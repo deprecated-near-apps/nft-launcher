@@ -34,6 +34,7 @@ pub struct Token {
     pub owner_id: AccountId,
     pub metadata: String,
     pub approved_account_ids: HashSet<AccountId>,
+    pub approval_id: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -128,6 +129,7 @@ impl Contract {
             owner_id,
             metadata,
             approved_account_ids: Default::default(),
+            approval_id: 0,
         };
         assert!(
             self.tokens_by_id.insert(&token_id, &token).is_none(),
@@ -152,10 +154,11 @@ impl Contract {
             deposit: deposit.clone()
         };
         let current_account_id = env::current_account_id();
-        ext_non_fungible_approval_receiver::nft_on_approve_account_id(
+        ext_non_fungible_approval_receiver::nft_on_approve(
             current_account_id.clone(),
             token_id.clone(),
             token.owner_id,
+            token.approval_id,
             Some(format!("{{\"beneficiary\":\"{}\",\"price\":\"{}\"}}", current_account_id, u128::from(price).to_string())),
             &market_contract,
             MAX_MARKET_DEPOSIT,
@@ -176,23 +179,23 @@ impl Contract {
         assert_eq!(&guest.account_id, &token.owner_id);
         let market_contract: AccountId = market_id.clone().into();
         assert_eq!(token.approved_account_ids.len(), 1, "No sale at market {}", market_contract.clone());
-        // make market remove sale
-        ext_non_fungible_approval_receiver::nft_on_revoke_account_id(
-            env::current_account_id(),
-            token_id.clone(),
-            token.owner_id,
-            None,
-            &market_contract,
-            NO_DEPOSIT,
-            env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
-        ).then(ext_self::on_market_updated(
-            token_id,
-            market_contract,
-            None,
-            &env::current_account_id(),
-            NO_DEPOSIT,
-            GAS_FOR_RESOLVE_TRANSFER,
-        ));
+        // // TODO no nft_on_revoke anymore make market remove sale
+        // ext_non_fungible_approval_receiver::nft_on_revoke(
+        //     env::current_account_id(),
+        //     token_id.clone(),
+        //     token.owner_id,
+        //     None,
+        //     &market_contract,
+        //     NO_DEPOSIT,
+        //     env::prepaid_gas() - GAS_FOR_NFT_TRANSFER_CALL,
+        // ).then(ext_self::on_market_updated(
+        //     token_id,
+        //     market_contract,
+        //     None,
+        //     &env::current_account_id(),
+        //     NO_DEPOSIT,
+        //     GAS_FOR_RESOLVE_TRANSFER,
+        // ));
     }
 
     /// internal helpers for guest admin
