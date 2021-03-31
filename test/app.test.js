@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require("path");
 const FileType = require('file-type');
 const animated = require('animated-gif-detector');
 const { Base64 } = require('js-base64');
@@ -25,29 +26,38 @@ const {
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
 
-const client = new NFTStorage({ token: nftStorageAPIKey });
+console.log('nftStorageAPIKey: ', nftStorageAPIKey)
+
+const endpoint = 'https://nft.storage';
+const client = new NFTStorage({ endpoint, token: nftStorageAPIKey });
 
 async function getContent(url) {
   return await fetch(url)
     .then(async res => {
       let newData;
-      // // Save the image file locally
-      // const arrayBuffer = await res.arrayBuffer();
-      // const buffer = Buffer.from(arrayBuffer);
-      // const fileType = await FileType.fromBuffer(buffer);
-      // if (fileType.ext) {
-      //   // Generates a file in main project directory image.gif (if file type was .gif)
-      //   const outputFileName = `image.${fileType.ext}`
-      //   fs.createWriteStream(outputFileName).write(buffer);
-      // } else {
-      //   console.log('File type could not be reliably determined! The binary data may be malformed! No file saved!')
-      // }
-      // const isAnimatedGif = animated(fs.readFileSync('image.gif'));
-      // console.log('animated gif? ', isAnimatedGif);
+      // Save the image file locally
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const fileType = await FileType.fromBuffer(buffer);
+      if (fileType.ext) {
+        // Generates a file in main project directory image.gif (if file type was .gif)
+        const outputFileName = `image.${fileType.ext}`
+        fs.createWriteStream(outputFileName).write(buffer);
+      } else {
+        console.log('File type could not be reliably determined! The binary data may be malformed! No file saved!')
+      }
+      const imagePath = path.resolve(__dirname, "../image.gif");
+      const isAnimatedGif = animated(fs.readFileSync(imagePath));
+      console.log('animated gif? ', isAnimatedGif);
 
-      // if (isAnimatedGif) {
-      //   // If the fetched image is animated then use the generated image.gif file that we saved
-      //   const data = fs.readFileSync('image.gif');
+      const blob = fs.readFileSync(imagePath);
+      const newBlob = new Blob([blob], "NFT Storage NEAR Punk", { type: "image/gif" });
+      console.log('newBlob: ', newBlob);
+      return newBlob;
+
+    //   if (isAnimatedGif) {
+    //     // If the fetched image is animated then use the generated image.gif file that we saved
+    //     const data = fs.readFileSync('image.gif');
 
       //   // DOES NOT WORK
       //   //   const newBlob = new Blob([blob], "NFT Storage NEAR Punk", { type: "image/gif" });
@@ -73,7 +83,7 @@ async function getContent(url) {
       //   newData = new Blob(['hello']);
       //   console.log('new text blob using NFT Storage: ', newData);
 
-        return newData;
+        // return newData;
         // node-fetch issues when using blob() or text().
         // https://github.com/node-fetch/node-fetch/issues/1079
         // let image = await res.text();
@@ -85,7 +95,8 @@ async function getContent(url) {
 }
 async function getCIDForContent(client, content) {
   console.log('content for cid: ', content);
-  return await client.storeBlob(content);
+  const cid = await client.storeBlob([content]);
+  return cid;
 }
 
 const metadata = 'https://media1.tenor.com/images/4c1d96a989150e7019bfbabbebd2ff36/tenor.gif'

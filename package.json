@@ -7,6 +7,7 @@
     "dependencies": {
         "animated-gif-detector": "^1.2.0",
         "bn": "^1.0.5",
+        "dotenv": "^8.2.0",
         "file-type": "^16.3.0",
         "js-base64": "^3.6.0",
         "near-api-js": "^0.36.2",
