@@ -46,12 +46,14 @@ async function getContent(url) {
       } else {
         console.log('File type could not be reliably determined! The binary data may be malformed! No file saved!')
       }
-      const imagePath = path.resolve(__dirname, "../image.gif");
+      const imagePath = path.resolve(__dirname, "image2.jpg");
       const isAnimatedGif = animated(fs.readFileSync(imagePath));
       console.log('animated gif? ', isAnimatedGif);
 
-      const blob = fs.readFileSync(imagePath);
-      const newBlob = new Blob([blob], "NFT Storage NEAR Punk", { type: "image/gif" });
+
+      const blob = await fs.promises.readFile(imagePath);
+    //   const blob = fs.readFileSync(imagePath);
+      const newBlob = new Blob([blob], "NFT Storage NEAR Punk", { type: "image/jpg" });
       console.log('newBlob: ', newBlob);
       return newBlob;
 
