@@ -20,12 +20,12 @@ const {
     getContract,
 } = testUtils;
 const { 
-	networkId, GAS, GUESTS_ACCOUNT_SECRET, NFT_STORAGE_API_KEY
+	networkId, GAS, GUESTS_ACCOUNT_SECRET, nftStorageAPIKey
 } = getConfig();
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 50000;
 
-const client = new NFTStorage({ token: NFT_STORAGE_API_KEY });
+const client = new NFTStorage({ token: nftStorageAPIKey });
 
 async function getContent(url) {
   return await fetch(url)
