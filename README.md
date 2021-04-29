@@ -1,5 +1,15 @@
 # NFT Launcher & Easy User Onboarding
 
+## UPDATE
+
+For the lastest standard NFT contract and a Marketplace example app, please use this repo: [nft-market](https://github.com/near-apps/nft-market).
+
+If you are serious about launching your NFT project on NEAR, [nft-market](https://github.com/near-apps/nft-market) is the best repo.
+
+You can combine the user onboarding techniques from nft-launcher with [nft-market](https://github.com/near-apps/nft-market).
+
+## End 
+
 Associated Video Demos (most recent at top)
 
 [![NEAR Protocol - NFT Launcher & Easy User Onboarding Demo - Hackathon Starter Kit!](https://img.youtube.com/vi/59Lzt1PFF6I/0.jpg)](https://www.youtube.com/watch?v=59Lzt1PFF6I)
