@@ -1,4 +1,4 @@
-const CONTRACT_NAME = "dev-1616611682822-1712761";
+const contractName = 'dev-1621363566808-83299674058879';
 
 module.exports = function getConfig() {
   let config = {
@@ -7,7 +7,7 @@ module.exports = function getConfig() {
     // walletUrl: 'http://localhost:1234',
     walletUrl: "https://wallet.testnet.near.org",
     helperUrl: "https://helper.testnet.near.org",
-    CONTRACT_NAME,
+    contractName,
   };
 
   if (process.env.REACT_APP_ENV !== undefined) {
@@ -33,7 +33,7 @@ module.exports = function getConfig() {
         viewMethods: ["get_guest", "get_token_ids", "nft_token", "get_sale"],
       },
       marketDeposit: "100000000000000000000000",
-      marketId: "market." + CONTRACT_NAME,
+      marketId: "market." + contractName,
     };
   }
 
@@ -44,7 +44,7 @@ module.exports = function getConfig() {
       nodeUrl: "https://rpc.mainnet.near.org",
       walletUrl: "https://wallet.near.org",
       helperUrl: "https://helper.mainnet.near.org",
-      CONTRACT_NAME: "near",
+      contractName: "near",
     };
   }
 
