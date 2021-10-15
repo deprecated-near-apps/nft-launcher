@@ -1,14 +1,12 @@
-# NFT Launcher & Easy User Onboarding
+# NFT Launcher & Easy User Onboarding (DEPRECATED)
 
-## UPDATE
+The NFT implementation in this repository has been deprecated as it does not follow current [NEP-171 standards](https://nomicon.io/Standards/NonFungibleToken/Core.html).
 
-For the lastest standard NFT contract and a Marketplace example app, please use this repo: [nft-market](https://github.com/near-apps/nft-market).
+**For the most up-to-date example of NEAR NFT Standard Implementation please visit:** 
 
-If you are serious about launching your NFT project on NEAR, [nft-market](https://github.com/near-apps/nft-market) is the best repo.
+[ https://github.com/near-examples/nft ]
 
-You can combine the user onboarding techniques from nft-launcher with [nft-market](https://github.com/near-apps/nft-market).
-
-## End 
+---
 
 Associated Video Demos (most recent at top)
 
